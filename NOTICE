@@ -1,0 +1,12 @@
+pii-scanner-web
+Copyright (C) 2026 Rudy Rezaire (RezDevOps)
+
+Ce logiciel est distribué sous licence GNU Affero General Public License v3.0
+(AGPL-3.0-only). Voir le fichier LICENSE pour le texte complet.
+
+Le code des couches `@rezdevops/pii-detectors` et `@rezdevops/pii-scanner-engine`,
+publiées sur npm, est soumis à la même licence.
+
+Les contributions externes acceptées dans ce repo le sont sous licence AGPL-3.0
+alignée. Toute soumission de PR vaut consentement à cette licence pour la
+contribution apportée.

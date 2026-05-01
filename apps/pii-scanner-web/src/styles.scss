@@ -1,0 +1,34 @@
+/*
+ * Styles globaux de l'application pii-scanner-web.
+ * Charte UI alignée Brand Bible RezDevOps : sobre, contrastée, accessible.
+ * Le thème Angular Material complet est posé en sprint S3.
+ */
+
+:root {
+  --psw-bg: #ffffff;
+  --psw-fg: #1a1a1a;
+  --psw-muted: #6b6b6b;
+  --psw-accent: #1f4f7a; /* bleu sobre, à figer en S3 avec la charte UI */
+  --psw-border: #e2e2e2;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    sans-serif;
+  background: var(--psw-bg);
+  color: var(--psw-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--psw-accent);
+}
+
+*:focus-visible {
+  outline: 2px solid var(--psw-accent);
+  outline-offset: 2px;
+}

@@ -1,0 +1,58 @@
+{
+  "name": "@rezdevops/pii-scanner-engine",
+  "version": "0.0.0",
+  "description": "Orchestration de scan PII : parseurs CSV / XLSX / PDF / TXT / JSON / DOCX / HTML, pool de Web Workers, agrégation des findings, génération des exports JSON / Markdown / HTML autonome.",
+  "license": "AGPL-3.0-only",
+  "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",
+  "homepage": "https://github.com/RezDevOps/pii-scanner-web/tree/main/packages/pii-scanner-engine",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RezDevOps/pii-scanner-web.git",
+    "directory": "packages/pii-scanner-engine"
+  },
+  "bugs": {
+    "url": "https://github.com/RezDevOps/pii-scanner-web/issues"
+  },
+  "keywords": [
+    "pii",
+    "rgpd",
+    "gdpr",
+    "scanner",
+    "csv",
+    "xlsx",
+    "pdf",
+    "web-worker"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "NOTICE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "echo \"(tests Jest viendront en S2 avec les premiers parseurs)\" && exit 0",
+    "lint": "echo \"(eslint configuré en S2)\" && exit 0",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@rezdevops/pii-detectors": "workspace:*"
+  },
+  "engines": {
+    "node": ">=20.10"
+  }
+}

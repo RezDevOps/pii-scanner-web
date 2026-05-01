@@ -1,0 +1,46 @@
+# Dépendances
+node_modules/
+.pnpm-store/
+
+# Builds
+dist/
+build/
+out/
+.angular/
+coverage/
+*.tsbuildinfo
+
+# Cache outils
+.cache/
+.parcel-cache/
+.eslintcache
+.turbo/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Éditeurs
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environnement
+.env
+.env.*
+!.env.example
+
+# Artefacts release locaux
+*.tgz
+*.zip
+sbom*.json

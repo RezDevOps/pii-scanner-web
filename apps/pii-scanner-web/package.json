@@ -1,0 +1,40 @@
+{
+  "name": "pii-scanner-web",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Application Angular du scanner PII local-only — UI uniquement, consomme @rezdevops/pii-scanner-engine via une façade.",
+  "license": "AGPL-3.0-only",
+  "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",
+  "type": "module",
+  "scripts": {
+    "ng": "ng",
+    "start": "ng serve --host 127.0.0.1 --port 4200",
+    "build": "ng build",
+    "watch": "ng build --watch --configuration development",
+    "test": "echo \"(tests Jest viendront en S3 avec les premiers composants)\" && exit 0",
+    "lint": "echo \"(eslint configuré en S3)\" && exit 0",
+    "e2e": "echo \"(Playwright configuré en S4)\" && exit 0"
+  },
+  "dependencies": {
+    "@angular/animations": "^20.0.0",
+    "@angular/cdk": "^20.0.0",
+    "@angular/common": "^20.0.0",
+    "@angular/compiler": "^20.0.0",
+    "@angular/core": "^20.0.0",
+    "@angular/forms": "^20.0.0",
+    "@angular/material": "^20.0.0",
+    "@angular/platform-browser": "^20.0.0",
+    "@angular/platform-browser-dynamic": "^20.0.0",
+    "@angular/router": "^20.0.0",
+    "@rezdevops/pii-detectors": "workspace:*",
+    "@rezdevops/pii-scanner-engine": "workspace:*",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.7.0",
+    "zone.js": "~0.15.0"
+  },
+  "devDependencies": {
+    "@angular-devkit/build-angular": "^20.0.0",
+    "@angular/cli": "^20.0.0",
+    "@angular/compiler-cli": "^20.0.0"
+  }
+}

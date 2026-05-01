@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>pii-scanner-web — scanner local de données personnelles</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      Content Security Policy stricte — promesse souveraineté du projet.
+      `connect-src 'none'` interdit toute requête réseau au runtime
+      (fetch, XMLHttpRequest, WebSocket, EventSource, beacon).
+      Toute exception future est une décision documentée (cadrage § 12).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; connect-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-ancestors 'none'; form-action 'none'; base-uri 'self'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="index,follow" />
+    <meta
+      name="description"
+      content="Scanner local de données personnelles dans des fichiers bureautiques. Aucun upload : tout reste dans votre navigateur."
+    />
+
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  </head>
+  <body>
+    <psw-root>Chargement de l'application…</psw-root>
+  </body>
+</html>
