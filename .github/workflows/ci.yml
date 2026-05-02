@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: ['20', '22']
+        node: ["20", "22"]
 
     steps:
       - name: Checkout
@@ -60,3 +60,16 @@ jobs:
 
       - name: Tests
         run: pnpm test
+
+      # Casse la build sur toute nouvelle CVE de niveau `high` ou `critical`
+      # dans la chaîne de dépendances `production` (`--prod` exclut les
+      # devDependencies, qui peuvent contenir des CVE moderate non
+      # exploitables en runtime utilisateur — cf.
+      # `docs/audit-dependances-v1.0.0.md`).
+      #
+      # Activé en S5 (planifié S4.1). Si un correctif n'existe pas encore
+      # côté upstream, le déblocage doit passer par un override
+      # `pnpm.overrides` documenté + une note dans l'audit, pas par la
+      # suppression de ce step.
+      - name: Audit dependencies (high+ severity threshold)
+        run: pnpm audit --audit-level=high --prod

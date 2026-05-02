@@ -27,16 +27,28 @@
       - `object-src 'none'` + `media-src 'none'` + `manifest-src 'none'`
         + `frame-src 'none'` : on n'embarque ni iframe, ni audio/vidéo,
         ni manifest PWA, ni objet plug-in.
-      - `base-uri 'none'` + `form-action 'none'` + `frame-ancestors 'none'` :
-        l'app n'a pas de <base>, pas de <form action>, et ne se laisse
-        pas iframer.
+      - `base-uri 'none'` + `form-action 'none'` : l'app n'a pas de <base>
+        modifié runtime ni de <form action>.
+
+      Note `frame-ancestors` : la directive est volontairement absente du
+      <meta>. Par spec WHATWG, `frame-ancestors` n'est honorée que servie
+      via header HTTP (la version <meta> est silencieusement ignorée et
+      génère un warning console). La protection effective est donnée par :
+      - `docker/nginx.conf` (image GHCR, header `Content-Security-Policy`
+        complet incluant `frame-ancestors 'none'`),
+      - `X-Frame-Options: DENY` posé en header dans la même conf nginx
+        (compatible navigateurs anciens, équivalent fonctionnel).
+      Côté GitHub Pages, GitHub n'autorise pas de headers HTTP custom :
+      l'anti-clickjacking n'est pas garanti sur la démo GH Pages, c'est un
+      compromis assumé pour v1.0 (le risque réel est faible : la SPA ne
+      manipule aucune donnée serveur). Documenté dans `docs/comment-verifier-souverainete.md`.
 
       Toute exception future est une décision documentée (cadrage § 12).
       Cf. `docs/comment-verifier-souverainete.md` (étape DevTools dédiée).
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; frame-src 'none'; child-src 'self' blob:; frame-ancestors 'none'; form-action 'none'; base-uri 'none'"
+      content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; frame-src 'none'; child-src 'self' blob:; form-action 'none'; base-uri 'none'"
     />
     <meta name="referrer" content="no-referrer" />
     <meta name="robots" content="index,follow" />

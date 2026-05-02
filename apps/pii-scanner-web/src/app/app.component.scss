@@ -1,0 +1,412 @@
+// ----------------------------------------------------------------------------
+// Styles de la coquille pii-scanner-web (landing + démo intégrée + footer).
+//
+// Externalisés depuis le template inline du AppComponent depuis v1.0.0 :
+// la landing étoffée fait sortir les styles du seuil "anyComponentStyle"
+// (cf. budgets angular.json). Variables CSS globales (palette `--psw-*`)
+// définies dans `src/styles.scss`. Mode sombre via `prefers-color-scheme`
+// hérité de la même feuille globale.
+//
+// Hiérarchie : :host > sections (hero/how/demo/sovereignty/benefits/distribution).
+// Pas de classes utilitaires globales : tout est local au composant.
+// ----------------------------------------------------------------------------
+
+:host {
+  display: block;
+  min-height: 100vh;
+  background: var(--psw-bg);
+  color: var(--psw-fg);
+}
+
+// --- Lien d'évitement clavier --- //
+.skip-link {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  background: var(--psw-fg);
+  color: var(--psw-bg);
+  padding: 0.5rem 1rem;
+  z-index: 100;
+
+  &:focus {
+    left: 0;
+  }
+}
+
+// --- Topbar --- //
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 1rem;
+}
+.brand {
+  font-weight: 600;
+}
+.spacer {
+  flex: 1 1 auto;
+}
+.topnav {
+  display: flex;
+  gap: 1.25rem;
+  font-size: 0.95rem;
+
+  a {
+    color: inherit;
+    text-decoration: none;
+    opacity: 0.9;
+    border-bottom: 2px solid transparent;
+    padding: 0.25rem 0;
+
+    &:hover,
+    &:focus-visible {
+      opacity: 1;
+      border-bottom-color: currentColor;
+    }
+  }
+
+  @media (max-width: 720px) {
+    display: none;
+  }
+}
+.versions {
+  font-size: 0.8125rem;
+  opacity: 0.85;
+
+  @media (max-width: 480px) {
+    display: none;
+  }
+}
+
+// --- Layout principal --- //
+.shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 0;
+}
+
+section {
+  margin-bottom: 3.5rem;
+  scroll-margin-top: 5rem; // ancres respectent la topbar sticky
+}
+
+h2 {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+  letter-spacing: -0.01em;
+}
+
+h3 {
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+}
+
+p {
+  line-height: 1.55;
+  margin: 0 0 0.75rem;
+  max-width: 70ch;
+}
+
+// --- Hero --- //
+.hero {
+  padding: 1rem 0 1.5rem;
+
+  .eyebrow {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-size: 0.75rem;
+    color: var(--psw-muted);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+  }
+
+  h1 {
+    font-size: clamp(1.6rem, 2.4vw + 0.8rem, 2.4rem);
+    line-height: 1.15;
+    margin: 0 0 1rem;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-subtitle {
+    color: var(--psw-muted);
+    font-weight: 400;
+  }
+
+  .lead {
+    font-size: 1.05rem;
+    color: var(--psw-fg);
+    max-width: 65ch;
+  }
+
+  .cta-row {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 1.25rem 0 1.5rem;
+  }
+
+  .hero-bullets {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 0.5rem 1.25rem;
+
+    li {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.95rem;
+      color: var(--psw-fg);
+    }
+  }
+}
+
+// --- Comment ça marche --- //
+.how {
+  .steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: step;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+
+    li {
+      position: relative;
+      padding: 1.25rem 1.25rem 1rem 3rem;
+      border: 1px solid var(--psw-border);
+      border-radius: 8px;
+      background: var(--psw-surface);
+    }
+
+    .step-num {
+      position: absolute;
+      top: 1.25rem;
+      left: 1rem;
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 50%;
+      background: var(--psw-accent, #1976d2);
+      color: white;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--psw-muted);
+    }
+  }
+}
+
+// --- Démo --- //
+.demo {
+  padding-top: 1rem;
+
+  .demo-intro {
+    color: var(--psw-muted);
+    margin-bottom: 1rem;
+  }
+
+  .actions {
+    margin: 1rem 0;
+  }
+}
+
+// --- Souveraineté --- //
+.sovereignty {
+  padding: 1.5rem;
+  border: 1px solid var(--psw-border);
+  border-radius: 8px;
+  background: var(--psw-surface);
+
+  .verify-steps {
+    margin: 1rem 0 1.25rem 1.25rem;
+    padding: 0;
+
+    li {
+      margin-bottom: 0.5rem;
+      line-height: 1.5;
+    }
+
+    kbd {
+      background: var(--psw-bg);
+      border: 1px solid var(--psw-border);
+      border-radius: 3px;
+      padding: 0.05rem 0.35rem;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.85rem;
+    }
+  }
+
+  .sov-cta {
+    margin: 1rem 0 0.75rem;
+  }
+
+  .sov-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 600;
+    color: var(--psw-accent, #1976d2);
+    text-decoration: none;
+    padding: 0.25rem 0;
+    border-bottom: 2px solid transparent;
+
+    &:hover,
+    &:focus-visible {
+      border-bottom-color: currentColor;
+    }
+  }
+
+  .sov-meta {
+    font-size: 0.9rem;
+    color: var(--psw-muted);
+    margin: 0;
+  }
+
+  code {
+    background: var(--psw-bg);
+    border: 1px solid var(--psw-border);
+    border-radius: 3px;
+    padding: 0.05rem 0.35rem;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.85rem;
+  }
+}
+
+// --- Bénéfices --- //
+.benefits {
+  .benefit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .benefit {
+    padding: 1.25rem;
+    border: 1px solid var(--psw-border);
+    border-radius: 8px;
+    background: var(--psw-surface);
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    p {
+      margin: 0;
+      font-size: 0.95rem;
+      color: var(--psw-muted);
+    }
+
+    code {
+      font-size: 0.85rem;
+      background: var(--psw-bg);
+      border: 1px solid var(--psw-border);
+      border-radius: 3px;
+      padding: 0.05rem 0.3rem;
+    }
+  }
+}
+
+// --- Distribution --- //
+.distribution {
+  .dist-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .dist-card {
+    padding: 1.25rem;
+    border: 1px solid var(--psw-border);
+    border-radius: 8px;
+    background: var(--psw-surface);
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    p {
+      font-size: 0.95rem;
+      color: var(--psw-muted);
+      margin: 0 0 0.5rem;
+    }
+
+    .cmd {
+      display: block;
+      font-size: 0.85rem;
+      background: var(--psw-bg);
+      border: 1px solid var(--psw-border);
+      border-radius: 4px;
+      padding: 0.5rem 0.6rem;
+      margin: 0;
+      overflow-x: auto;
+      white-space: nowrap;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    }
+
+    .dist-cta a {
+      color: var(--psw-accent, #1976d2);
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// --- Footer --- //
+.footer {
+  border-top: 1px solid var(--psw-border);
+  margin-top: 3rem;
+
+  .footer-inner {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 1.5rem;
+  }
+
+  .muted {
+    color: var(--psw-muted);
+    font-size: 0.9rem;
+    margin: 0 0 0.25rem;
+  }
+
+  .small {
+    font-size: 0.825rem;
+    opacity: 0.85;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: underline;
+    text-decoration-color: var(--psw-border);
+
+    &:hover,
+    &:focus-visible {
+      text-decoration-color: currentColor;
+    }
+  }
+}
+
+// --- Reduced motion --- //
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

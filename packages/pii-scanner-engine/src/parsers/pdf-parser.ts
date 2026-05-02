@@ -56,22 +56,16 @@ function loadPdfjsModule(): Promise<
 > {
   if (!pdfjsModulePromise) {
     // eslint-disable-next-line import/no-unresolved -- sous-chemin du package
-    pdfjsModulePromise = import("pdfjs-dist/legacy/build/pdf.mjs").then(
-      (mod) => {
-        // On désactive le worker explicitement : pour `getTextContent`,
-        // le fallback monothread est suffisant. En spécifiant une
-        // chaîne vide, PDF.js bascule sur le mode synchrone dans le
-        // thread courant. Idempotent : si l'app caller a déjà
-        // configuré une URL, on ne l'écrase pas.
-        if (
-          typeof mod.GlobalWorkerOptions !== "undefined" &&
-          !mod.GlobalWorkerOptions.workerSrc
-        ) {
-          mod.GlobalWorkerOptions.workerSrc = "";
-        }
-        return mod;
-      },
-    );
+    pdfjsModulePromise = import("pdfjs-dist/legacy/build/pdf.mjs");
+    // **Note v1.0** : la configuration de
+    // `GlobalWorkerOptions.workerSrc` est déléguée au caller (l'app).
+    // pdfjs-dist 4+ exige une URL de worker valide ; le fake
+    // `workerSrc = ""` qui fonctionnait en pdfjs-dist 3.x ne marche
+    // plus. L'app embarque `pdf.worker.mjs` dans ses assets statiques
+    // (cf. `apps/pii-scanner-web/angular.json` → `architect.build.options.assets`)
+    // et configure le `workerSrc` au démarrage, en respectant
+    // `worker-src 'self' blob:` de la CSP. Voir
+    // `apps/pii-scanner-web/src/app/app.component.ts` pour l'init.
   }
   return pdfjsModulePromise;
 }

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>pii-scanner-web — scanner local de données personnelles (DEV)</title>
+    <base href="/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!--
+      ============================================================
+      INDEX DEV UNIQUEMENT — NE JAMAIS DÉPLOYER EN PROD
+      ============================================================
+
+      Ce fichier remplace `index.html` quand `ng build` /
+      `ng serve` tournent en `configuration: development` (cf.
+      `angular.json` → `architect.build.configurations.development.index`).
+
+      Pourquoi un fichier séparé :
+        - `ng serve` ouvre un WebSocket vers `ws://127.0.0.1:4200/`
+          pour le live-reload (HMR / `webpackHotUpdate`).
+        - La CSP de prod (`connect-src 'none'`) bloque ce WebSocket et
+          fait planter le client HMR Angular au démarrage. En cascade,
+          plusieurs initialisations Angular peuvent échouer
+          silencieusement, et l'UI ne réagit plus aux évènements
+          (ex. drop de fichier dans la dropzone).
+        - On délivre donc une CSP « dev » qui autorise minimalement les
+          connexions au dev server local, sans relâcher les autres
+          directives critiques (script-src, style-src, etc. restent
+          identiques à la prod).
+
+      Différence vs `index.html` (prod) :
+        - `connect-src 'self' ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*`
+          au lieu de `connect-src 'none'`.
+        - Tout le reste est identique.
+
+      Vérification de la promesse souveraineté :
+        - Le contrôle final se fait en **build prod** : `pnpm build`
+          puis ouvrir `apps/pii-scanner-web/dist/browser/index.html`
+          en `file://` ou via `pnpm dlx http-server dist/browser -c-1`.
+        - Le `index.html` de prod (avec `connect-src 'none'`) sera
+          alors actif, et la garantie « zéro requête sortante » est
+          vérifiable via DevTools.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' ws://localhost:* ws://127.0.0.1:* http://localhost:* http://127.0.0.1:*; object-src 'none'; media-src 'none'; manifest-src 'none'; frame-src 'none'; child-src 'self' blob:; form-action 'none'; base-uri 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta
+      name="description"
+      content="pii-scanner-web — environnement de développement local (HMR autorisé)."
+    />
+
+    <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  </head>
+  <body>
+    <psw-root>Chargement de l'application…</psw-root>
+  </body>
+</html>

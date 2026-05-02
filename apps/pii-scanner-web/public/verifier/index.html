@@ -1,0 +1,606 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Comment vérifier la souveraineté · pii-scanner-web</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!--
+      `frame-ancestors` volontairement absente du meta : par spec WHATWG
+      cette directive n'est honorée que servie via header HTTP. Sa
+      présence en <meta> est silencieusement ignorée et génère un
+      warning console. Le header est posé côté nginx Docker
+      (`docker/nginx.conf`) ; côté GitHub Pages, l'anti-clickjacking
+      n'est pas garanti (compromis assumé v1.0).
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; frame-src 'none'; child-src 'none'; form-action 'none'; base-uri 'none'"
+    />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="robots" content="index,follow" />
+    <meta
+      name="description"
+      content="Procédure pas à pas pour vérifier que pii-scanner-web ne fait sortir aucune donnée du navigateur."
+    />
+    <style>
+      :root {
+        --bg: #ffffff;
+        --fg: #1a1a1a;
+        --muted: #595959;
+        --accent: #1f4f7a;
+        --border: #e2e2e2;
+        --surface: #f5f7fa;
+        --code-bg: #f0f2f5;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #131516;
+          --fg: #ececec;
+          --muted: #b3b3b3;
+          --accent: #6fb1e8;
+          --border: #3a3d40;
+          --surface: #1d2023;
+          --code-bg: #24272a;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--bg);
+        color: var(--fg);
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+          sans-serif;
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+      }
+      a {
+        color: var(--accent);
+      }
+      *:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      header.topbar {
+        background: var(--accent);
+        color: white;
+        padding: 0.85rem 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      header.topbar a {
+        color: white;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      header.topbar a:hover,
+      header.topbar a:focus-visible {
+        text-decoration: underline;
+      }
+      header.topbar .back {
+        font-weight: 400;
+        opacity: 0.92;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 4rem;
+      }
+      h1 {
+        font-size: clamp(1.5rem, 2vw + 0.8rem, 2rem);
+        margin: 0 0 0.5rem;
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+      }
+      h2 {
+        font-size: 1.3rem;
+        margin: 2.25rem 0 0.75rem;
+        letter-spacing: -0.005em;
+      }
+      h3 {
+        font-size: 1.05rem;
+        margin: 1.5rem 0 0.5rem;
+      }
+      .lead {
+        font-size: 1.05rem;
+        color: var(--fg);
+        max-width: 60ch;
+      }
+      .quote {
+        border-left: 3px solid var(--accent);
+        padding: 0.5rem 0.95rem;
+        background: var(--surface);
+        color: var(--muted);
+        margin: 1.25rem 0 1.5rem;
+        font-size: 0.95rem;
+        border-radius: 0 6px 6px 0;
+      }
+      ol,
+      ul {
+        padding-left: 1.5rem;
+      }
+      li {
+        margin-bottom: 0.4rem;
+      }
+      code {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 3px;
+        padding: 0.05rem 0.35rem;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.9rem;
+      }
+      pre {
+        background: var(--code-bg);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 0.85rem 1rem;
+        overflow-x: auto;
+        font-size: 0.9rem;
+      }
+      pre code {
+        background: transparent;
+        border: 0;
+        padding: 0;
+      }
+      kbd {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-bottom-width: 2px;
+        border-radius: 3px;
+        padding: 0.05rem 0.45rem;
+        font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+        font-size: 0.85rem;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        margin: 1rem 0;
+        font-size: 0.95rem;
+      }
+      th,
+      td {
+        border: 1px solid var(--border);
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: var(--surface);
+        font-weight: 600;
+      }
+      .toc {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 1rem 1.25rem;
+        margin: 1.5rem 0;
+      }
+      .toc h2 {
+        margin-top: 0;
+        font-size: 1rem;
+      }
+      .toc ol {
+        margin: 0;
+      }
+      footer.page-footer {
+        max-width: 760px;
+        margin: 2rem auto 0;
+        padding: 1.25rem 1.5rem;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+      .alert {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-left: 4px solid var(--accent);
+        padding: 0.85rem 1rem;
+        border-radius: 0 6px 6px 0;
+        margin: 1.25rem 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <a href="../" class="back" aria-label="Retour à la page d'accueil"
+        >&larr; pii-scanner-web</a
+      >
+      <span style="opacity: 0.75">/ Comment vérifier la souveraineté</span>
+    </header>
+
+    <main>
+      <h1>
+        Comment vérifier que pii-scanner-web ne sort rien de votre navigateur
+      </h1>
+      <p class="lead">
+        Ce document est le cœur de la promesse de l'outil. Il décrit pas à pas
+        comment <strong>vous</strong> vérifiez en direct que rien ne sort de
+        votre navigateur quand vous scannez un fichier. La démonstration prend
+        moins d'une minute.
+      </p>
+
+      <div class="toc" aria-labelledby="toc-title">
+        <h2 id="toc-title">Sommaire</h2>
+        <ol>
+          <li><a href="#pourquoi">Pourquoi ce document existe</a></li>
+          <li><a href="#mode">Mode opératoire (5 étapes)</a></li>
+          <li>
+            <a href="#renforce">Vérification renforcée — bloquer le réseau</a>
+          </li>
+          <li><a href="#workers">Vérifier l'usage des Web Workers</a></li>
+          <li><a href="#csp">Vérification de la Content Security Policy</a></li>
+          <li>
+            <a href="#binaires"
+              >Fichiers Excel / PDF / Word — où va leur contenu ?</a
+            >
+          </li>
+          <li><a href="#audit">Auditabilité du code</a></li>
+          <li><a href="#fuite">Si vous trouvez une fuite</a></li>
+        </ol>
+      </div>
+
+      <h2 id="pourquoi">Pourquoi ce document existe</h2>
+      <p>
+        La promesse <em>« 100 % navigateur »</em> est facile à écrire, difficile
+        à tenir. Tous les outils SaaS de scan PII vous demandent d'envoyer le
+        fichier dans leur cloud — précisément ce que vous cherchez à éviter
+        quand vous voulez vérifier qu'un fichier n'a pas de fuite.
+        <code>pii-scanner-web</code> traite les fichiers localement et
+        <strong>vous donne les moyens de le vérifier vous-même</strong>, sans
+        avoir à nous croire sur parole.
+      </p>
+
+      <h2 id="mode">Mode opératoire</h2>
+
+      <h3>1. Ouvrir l'application</h3>
+      <p>Choisissez l'un des trois points d'entrée :</p>
+      <ul>
+        <li>
+          la démo officielle
+          <code>https://rezdevops.github.io/pii-scanner-web/</code> (servie
+          statique, sans backend),
+        </li>
+        <li>
+          l'image Docker auto-hébergée
+          <code>ghcr.io/rezdevops/pii-scanner-web</code> (nginx local),
+        </li>
+        <li>
+          l'archive ZIP standalone, dépaquetée puis ouverte en double-clic sur
+          <code>index.html</code> (mode hors-ligne complet).
+        </li>
+      </ul>
+      <div class="alert">
+        Pour la vérification la plus stricte : utiliser l'archive ZIP,
+        <strong
+          >après avoir débranché le câble réseau ou désactivé le Wi-Fi</strong
+        >. Si l'application fonctionne, c'est une preuve directe qu'elle n'a
+        besoin de personne.
+      </div>
+
+      <h3>2. Ouvrir DevTools — onglet Réseau</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Navigateur</th>
+            <th>Raccourci</th>
+            <th>Onglet à activer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Chrome / Edge</td>
+            <td>
+              <kbd>F12</kbd> ou <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>I</kbd>
+            </td>
+            <td>Network (Réseau)</td>
+          </tr>
+          <tr>
+            <td>Firefox</td>
+            <td>
+              <kbd>F12</kbd> ou <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>E</kbd>
+            </td>
+            <td>Réseau</td>
+          </tr>
+          <tr>
+            <td>Safari</td>
+            <td>
+              <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>I</kbd> (avec menu
+              Développeur activé)
+            </td>
+            <td>Réseau</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>Dans l'onglet Réseau :</p>
+      <ol>
+        <li>
+          Cocher <strong>Disable cache</strong> (ou
+          <em>Désactiver le cache</em>).
+        </li>
+        <li>
+          Filtrer sur <code>Fetch/XHR</code> (ou <em>Tout</em> si vous voulez
+          voir aussi les requêtes statiques initiales).
+        </li>
+        <li>
+          Cliquer sur l'icône <strong>Vider</strong> (corbeille) pour partir
+          d'un état propre.
+        </li>
+      </ol>
+
+      <h3>3. Déposer un fichier de test</h3>
+      <p>
+        Glissez-déposez un fichier dans la drop zone, ou utilisez le bouton de
+        sélection. Vous pouvez utiliser n'importe quel fichier — y compris un
+        fichier réel : il ne quittera pas votre poste.
+      </p>
+
+      <h3>4. Lancer le scan</h3>
+      <p>
+        Cliquer sur <em>Scanner</em>. La progression s'affiche en direct, le
+        rapport est rendu en quelques secondes selon la taille du fichier.
+      </p>
+
+      <h3>5. Vérifier l'onglet Réseau</h3>
+      <p>
+        <strong
+          >Aucune requête sortante ne doit apparaître pendant le scan.</strong
+        >
+      </p>
+      <p>Plus précisément, vous ne devez voir aucune ligne avec :</p>
+      <ul>
+        <li>une URL pointant vers un domaine externe au vôtre,</li>
+        <li>
+          un type <code>fetch</code>, <code>xhr</code>, <code>websocket</code>,
+          <code>eventsource</code> ou <code>beacon</code>,
+        </li>
+        <li><em>initiator</em> lié à la SPA pendant la phase de scan.</li>
+      </ul>
+      <p>
+        Les seules requêtes acceptables sont celles du chargement initial de la
+        page (HTML, JS, CSS, polices locales — toutes servies depuis le même
+        domaine que l'application). Aucune ne doit apparaître après le clic
+        <em>Scanner</em>.
+      </p>
+
+      <h2 id="renforce">
+        Vérification renforcée — bloquer le réseau au niveau navigateur
+      </h2>
+      <p>
+        Pour aller plus loin, Chrome propose dans DevTools un mode
+        <em>Offline</em> (onglet Réseau → menu <em>Throttling</em> →
+        <em>Offline</em>). Activez-le <strong>avant</strong> de lancer le scan :
+        si l'application fonctionne quand même, c'est qu'elle n'a besoin
+        d'aucune ressource réseau au runtime.
+      </p>
+
+      <h2 id="workers">Vérifier l'usage des Web Workers</h2>
+      <p>
+        À compter de la version <code>v0.3.0</code>, vous pouvez vérifier
+        visuellement que les calculs lourds sont effectivement délégués à des
+        Web Workers (parallélisation, pool Comlink).
+      </p>
+      <ol>
+        <li>
+          Ouvrez DevTools → onglet <strong>Sources</strong> (Chrome/Edge) ou
+          <strong>Débogueur</strong> (Firefox).
+        </li>
+        <li>
+          Cherchez la section <strong>Threads</strong> ou
+          <strong>Workers</strong> dans la barre latérale.
+        </li>
+        <li>Lancez un scan sur un fichier de plusieurs Mo.</li>
+        <li>
+          Vous devez voir apparaître plusieurs entrées du type
+          <code>scan-worker.js</code> (jusqu'à
+          <code>navigator.hardwareConcurrency</code>, plafonnées à 8).
+        </li>
+        <li>
+          Pendant le scan, l'UI reste fluide (pas de <em>jank</em> sur les
+          animations) — preuve que le thread principal n'est pas bloqué.
+        </li>
+      </ol>
+      <p>
+        Si vous ne voyez pas de Workers, c'est que vous utilisez l'app Angular
+        sans le pool activé (mode <code>MainThreadRunner</code>, fallback). Dans
+        ce cas le calcul tourne sur le thread principal mais reste 100&nbsp;%
+        local — la promesse souveraineté est intacte, seule la fluidité UI peut
+        être impactée sur très gros fichiers.
+      </p>
+
+      <h2 id="csp">Vérification de la Content Security Policy</h2>
+      <p>
+        Depuis <code>v0.4.1</code>, la CSP du SPA est resserrée à un niveau «
+        strict » : <code>default-src 'none'</code>, ce qui force chaque type de
+        ressource à être déclaré explicitement plutôt que d'hériter d'une
+        politique large.
+      </p>
+      <ol>
+        <li>
+          Faites un clic-droit sur la page →
+          <em>Afficher le code source de la page</em>.
+        </li>
+        <li>Cherchez <code>Content-Security-Policy</code>.</li>
+        <li>
+          Vous devez voir notamment :
+          <ul>
+            <li><code>default-src 'none'</code> — verrou principal,</li>
+            <li>
+              <code>connect-src 'none'</code> — aucune requête réseau possible
+              au runtime (<code>fetch</code>, <code>XMLHttpRequest</code>,
+              <code>WebSocket</code>, <code>EventSource</code>,
+              <code>navigator.sendBeacon</code>),
+            </li>
+            <li>
+              <code>script-src 'self' 'wasm-unsafe-eval'</code> — scripts
+              uniquement servis par l'origine du SPA, plus l'autorisation
+              WebAssembly indispensable à PDF.js,
+            </li>
+            <li>
+              <code>object-src 'none'</code>, <code>media-src 'none'</code>,
+              <code>manifest-src 'none'</code>, <code>frame-src 'none'</code> —
+              aucun plug-in, audio/vidéo, manifest PWA ou iframe embarqués,
+            </li>
+            <li>
+              <code>frame-ancestors 'none'</code> — l'application ne peut pas
+              être iframée par un site tiers (anti-clickjacking),
+            </li>
+            <li>
+              <code>base-uri 'none'</code> + <code>form-action 'none'</code> —
+              pas de redirection détournée via <code>&lt;base&gt;</code> ou
+              <code>&lt;form action&gt;</code>.
+            </li>
+          </ul>
+        </li>
+      </ol>
+      <p>
+        Toute tentative de violation est visible dans la console DevTools
+        (onglet <em>Console</em> → message en rouge commençant par
+        <code>Refused to connect to ...</code>,
+        <code>Refused to load script ...</code>, etc.). Aucun message de ce type
+        ne doit apparaître pendant un scan : la SPA respecte sa propre CSP.
+      </p>
+
+      <h3>
+        Pourquoi <code>'unsafe-inline'</code> sur <code>style-src</code> ?
+      </h3>
+      <p>
+        Angular Material injecte des styles inline sur certains composants
+        (animations <code>mat-ripple</code>, overlays). Ce compromis est
+        documenté ; aucun script inline n'est autorisé (la directive
+        <code>script-src</code> ne contient pas <code>'unsafe-inline'</code>).
+        En pratique, l'app pourrait passer à
+        <code>style-src 'self' 'sha256-...'</code> avec hash CSS, mais le
+        bénéfice marginal ne justifie pas la fragilité opératoire (chaque mise à
+        jour Material casserait le hash). Décision réévaluée à chaque major
+        Angular.
+      </p>
+
+      <h3>
+        Pourquoi <code>'wasm-unsafe-eval'</code> sur <code>script-src</code> ?
+      </h3>
+      <p>
+        PDF.js utilise des optimisations WebAssembly pour décompresser certains
+        streams PDF. Sans cette directive, les PDF compressés en JBIG2/JPEG2000
+        ne s'ouvriraient pas. Cf. ADR 0006 (PDF.js) et ADR 0007 (lazy-loading)
+        pour le contexte. Si vous ne scannez jamais de PDF, vous pouvez retirer
+        cette directive en build personnalisé — l'app fonctionnera sur tous les
+        autres formats.
+      </p>
+
+      <h2 id="binaires">Fichiers Excel / PDF / Word — où va leur contenu ?</h2>
+      <p>
+        Depuis <code>v0.2.1</code>, les parseurs binaires (XLSX/XLS via SheetJS,
+        PDF via PDF.js, DOCX via mammoth, HTML via <code>DOMParser</code> natif)
+        sont actifs.
+        <strong>Aucun de ces parseurs ne fait d'appel réseau</strong>
+        : ils décompressent et lisent le contenu localement, dans le thread
+        courant ou dans un Web Worker selon le mode d'exécution choisi.
+      </p>
+      <p>PDF.js est configuré explicitement pour la souveraineté :</p>
+      <ul>
+        <li>
+          <code>isEvalSupported: false</code> — pas d'évaluation de JS embarqué
+          dans le PDF (certains PDF anciens en contiennent),
+        </li>
+        <li>
+          <code>disableFontFace: true</code> — pas de chargement de polices
+          externes,
+        </li>
+        <li>
+          <code>useSystemFonts: false</code> — pas d'accès au filesystem système
+          pour les polices,
+        </li>
+        <li>
+          <code>workerSrc = ""</code> — pas de worker externe instancié par
+          défaut, le rendu texte tourne en monothread interne.
+        </li>
+      </ul>
+      <p>
+        Pas d'OCR : un PDF scanné (image dans la page) ne produit aucun texte et
+        donc zéro finding, sans erreur. L'OCR via Tesseract.js est reporté à
+        <code>v1.1</code> — il est lui aussi 100&nbsp;% local quand il sera
+        ajouté.
+      </p>
+
+      <h2 id="audit">Auditabilité du code</h2>
+      <p>
+        Le code source de l'application est intégralement public sous licence
+        AGPL-3.0. Trois portes d'entrée pour audit :
+      </p>
+      <ul>
+        <li>
+          la <strong>CSP</strong> dans
+          <code>apps/pii-scanner-web/src/index.html</code>,
+        </li>
+        <li>
+          les <strong>détecteurs</strong> dans
+          <code>packages/pii-detectors/src/</code> (lib pure, sans I/O),
+        </li>
+        <li>
+          l'<strong>engine</strong> dans
+          <code>packages/pii-scanner-engine/src/</code> (orchestration, sans
+          <code>fetch</code>).
+        </li>
+      </ul>
+      <p>
+        Les ADRs <code>0004</code> (mammoth), <code>0005</code> (SheetJS) et
+        <code>0006</code> (PDF.js) documentent les choix de dépendances pour les
+        formats binaires, leurs licences (toutes permissives), leur poids et
+        leur surface d'attaque. Aucune télémétrie, aucune analytics, aucun
+        tracking, jamais.
+      </p>
+
+      <h2 id="fuite">Si vous trouvez une fuite</h2>
+      <p>
+        Ouvrez une issue sur
+        <a
+          href="https://github.com/RezDevOps/pii-scanner-web/issues"
+          target="_blank"
+          rel="noopener noreferrer"
+          >github.com/RezDevOps/pii-scanner-web/issues</a
+        >
+        avec :
+      </p>
+      <ul>
+        <li>la version de l'application (visible en pied de page),</li>
+        <li>le navigateur et sa version,</li>
+        <li>une capture d'écran de l'onglet Réseau au moment de la fuite,</li>
+        <li>les étapes pour reproduire.</li>
+      </ul>
+      <p>
+        Une fuite éventuelle est traitée comme un bug critique. Toute correction
+        sera annoncée publiquement dans le
+        <code>CHANGELOG.md</code>.
+      </p>
+    </main>
+
+    <footer class="page-footer">
+      <p>
+        <strong>pii-scanner-web</strong> · Licence
+        <a
+          href="https://www.gnu.org/licenses/agpl-3.0.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          >AGPL-3.0</a
+        >
+        · Code source
+        <a
+          href="https://github.com/RezDevOps/pii-scanner-web"
+          target="_blank"
+          rel="noopener noreferrer"
+          >github.com/RezDevOps/pii-scanner-web</a
+        >
+      </p>
+      <p>
+        Cette page n'enregistre rien : aucun cookie, aucune analytics, aucune
+        télémétrie.
+      </p>
+    </footer>
+  </body>
+</html>

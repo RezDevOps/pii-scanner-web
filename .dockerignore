@@ -1,0 +1,24 @@
+# Réduit fortement le contexte Docker. Tout ce qui n'est pas indispensable
+# au build est ignoré pour accélérer COPY et limiter les fuites accidentelles.
+.git
+.github
+.husky
+node_modules
+**/node_modules
+**/dist
+**/.angular
+**/coverage
+.DS_Store
+*.log
+.env
+.env.*
+.idea
+.vscode
+
+# Fichiers de session
+COMMIT_MSG_*.txt
+TAG_MSG_*.txt
+
+# Documentation hors site (les .md utiles sont déjà copiés au besoin)
+historique/
+sandbox/

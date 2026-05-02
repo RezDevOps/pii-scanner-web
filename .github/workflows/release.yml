@@ -1,0 +1,503 @@
+# Workflow de release multi-cibles déclenché au push d'un tag `v*`.
+#
+# Pipeline produit :
+#   1. `verify`         : sanity check (install + format + build + lint + test).
+#   2. `build-app`      : build Angular production, partage le dist/ via artifact.
+#   3. `build-zip`      : assemble l'archive ZIP standalone (double-clic file://).
+#   4. `build-sbom`     : génère le SBOM CycloneDX (bom.json) depuis le lockfile.
+#   5. `build-docker`   : build + push image GHCR (`ghcr.io/rezdevops/pii-scanner-web`)
+#                         signée cosign keyless OIDC.
+#   6. `publish-npm`    : publie `@rezdevops/pii-detectors` puis
+#                         `@rezdevops/pii-scanner-engine` sur npm public,
+#                         provenance OIDC.
+#   7. `deploy-pages`   : déploie le dist/ sur GitHub Pages.
+#   8. `release`        : crée la GitHub Release avec ZIP + SBOM + signatures
+#                         attachés et notes auto-générées.
+#
+# Tous les jobs partagent le numéro de version extrait du tag (ex. `v1.0.0`
+# → `1.0.0`). Aucun job ne crée d'effet de bord avant la fin de `verify`.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "20"
+  PNPM_VERSION: "9.12.0"
+  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/pii-scanner-web
+  ZIP_NAME_BASE: pii-scanner-web
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1. Vérifications de base. Refait tout (format, build, tests) avant de
+  #    publier quoi que ce soit. Si la CI était verte sur la branche main mais
+  #    qu'un commit est arrivé entre-temps sans CI, ce filet rattrape.
+  # ---------------------------------------------------------------------------
+  verify:
+    name: Verify (format + build + lint + test)
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          VERSION="${TAG#v}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing v$VERSION"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Format check
+        run: pnpm format:check
+
+      - name: Build (lib + engine + app)
+        run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Audit (high severity threshold)
+        run: pnpm audit --audit-level=high --prod
+
+  # ---------------------------------------------------------------------------
+  # 2. Build production de l'app + packages, partagé via artifact pour les
+  #    autres jobs (zip, docker, pages, release).
+  # ---------------------------------------------------------------------------
+  build-app:
+    name: Build production artifact
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build production (base href ./)
+        # `--base-href ./` : chemins relatifs, fonctionne identiquement en
+        # file:// (ZIP standalone), sur GH Pages (sous-chemin `/pii-scanner-web/`),
+        # et derrière nginx (Docker). Évite la double génération de bundles.
+        # Le script alias `build:rel` évite le souci de propagation d'args
+        # `pnpm 9 -- --foo` qui fait échouer le validateur de schéma Angular CLI.
+        run: pnpm --filter pii-scanner-web build:rel
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-app
+          path: apps/pii-scanner-web/dist/browser
+          retention-days: 7
+          if-no-files-found: error
+
+      - name: Upload packages dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-packages
+          path: |
+            packages/pii-detectors/dist
+            packages/pii-scanner-engine/dist
+            packages/pii-detectors/package.json
+            packages/pii-scanner-engine/package.json
+            packages/pii-detectors/README.md
+            packages/pii-scanner-engine/README.md
+            packages/pii-detectors/LICENSE
+            packages/pii-scanner-engine/LICENSE
+          retention-days: 7
+          if-no-files-found: warn
+
+  # ---------------------------------------------------------------------------
+  # 3. Archive ZIP standalone. Pré-condition : le dist a été buildé avec
+  #    `--base-href ./`, ce qui rend l'index.html ouvrable en double-clic.
+  # ---------------------------------------------------------------------------
+  build-zip:
+    name: Build standalone ZIP
+    runs-on: ubuntu-latest
+    needs: [verify, build-app]
+    outputs:
+      zip-name: ${{ steps.pack.outputs.zip-name }}
+      sha256: ${{ steps.pack.outputs.sha256 }}
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-app
+          path: dist-app
+
+      - name: Pack ZIP
+        id: pack
+        run: |
+          VERSION='${{ needs.verify.outputs.version }}'
+          ZIP_NAME="${ZIP_NAME_BASE}-v${VERSION}-standalone.zip"
+          # Inclut toute l'arborescence buildée (HTML + JS + CSS + assets +
+          # /verifier/ embarqué via apps/.../public/).
+          (cd dist-app && zip -r "../${ZIP_NAME}" .)
+          SHA="$(sha256sum "${ZIP_NAME}" | awk '{print $1}')"
+          echo "${SHA}  ${ZIP_NAME}" > "${ZIP_NAME}.sha256"
+          echo "zip-name=${ZIP_NAME}" >> "$GITHUB_OUTPUT"
+          echo "sha256=${SHA}" >> "$GITHUB_OUTPUT"
+          ls -la "${ZIP_NAME}"*
+
+      - name: Upload ZIP artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: standalone-zip
+          path: |
+            ${{ steps.pack.outputs.zip-name }}
+            ${{ steps.pack.outputs.zip-name }}.sha256
+          retention-days: 7
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 4. SBOM CycloneDX (bom.json). Couvre l'ensemble du monorepo (lockfile
+  #    pnpm) et la version exacte de tous les packages publiés.
+  # ---------------------------------------------------------------------------
+  build-sbom:
+    name: Build SBOM (CycloneDX)
+    runs-on: ubuntu-latest
+    needs: verify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate CycloneDX SBOM
+        # @cyclonedx/cyclonedx-npm est invoqué via dlx pour ne pas l'ajouter
+        # en devDependency permanente (pas utile en dev local).
+        run: pnpm dlx @cyclonedx/cyclonedx-npm@^1.20.0 --output-file bom.json --output-format json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: bom.json
+          retention-days: 7
+          if-no-files-found: error
+
+  # ---------------------------------------------------------------------------
+  # 5. Image Docker GHCR. Build multi-arch (amd64 + arm64) pour couvrir Apple
+  #    Silicon des clients RezDevOps. Signature cosign keyless via OIDC.
+  # ---------------------------------------------------------------------------
+  build-docker:
+    name: Build & push Docker image (signed)
+    runs-on: ubuntu-latest
+    needs: [verify, build-app]
+    permissions:
+      contents: read
+      packages: write
+      id-token: write # cosign keyless
+    outputs:
+      digest: ${{ steps.push.outputs.digest }}
+      tags: ${{ steps.meta.outputs.tags }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-app
+          path: apps/pii-scanner-web/dist/browser
+
+      - name: Setup QEMU (multi-arch)
+        uses: docker/setup-qemu-action@v3
+
+      - name: Setup Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.title=pii-scanner-web
+            org.opencontainers.image.description=Scanner local de PII (souverain, navigateur uniquement)
+            org.opencontainers.image.licenses=AGPL-3.0-only
+            org.opencontainers.image.vendor=RezDevOps
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+
+      - name: Build & push image
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          provenance: true
+          sbom: false
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        run: |
+          # Une signature par tag publié, identifiée par le digest immuable.
+          IMAGE_DIGEST='${{ env.IMAGE_NAME }}@${{ steps.push.outputs.digest }}'
+          cosign sign --yes "$IMAGE_DIGEST"
+
+  # ---------------------------------------------------------------------------
+  # 6. Publication npm publique. Provenance OIDC (npm 2024+) — pas de NPM_TOKEN
+  #    en secret nécessaire à condition d'avoir activé « Trusted Publisher »
+  #    sur les deux packages côté npm.com (lien repo GitHub + workflow).
+  #
+  #    Premier passage (avant config Trusted Publisher) : utiliser un
+  #    NPM_TOKEN classique scope=automation, mettre en secret repo NPM_TOKEN,
+  #    décommenter la ligne `NODE_AUTH_TOKEN`.
+  # ---------------------------------------------------------------------------
+  publish-npm:
+    name: Publish npm packages (provenance)
+    runs-on: ubuntu-latest
+    needs: [verify, build-app]
+    permissions:
+      contents: read
+      id-token: write # provenance OIDC
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build packages (lib + engine)
+        run: pnpm -r --filter='./packages/*' build
+
+      - name: Publish @rezdevops/pii-detectors
+        # `--no-git-checks` : on publie depuis le tag, le HEAD n'est pas une
+        # branche. `--access public` : scope @rezdevops public.
+        # `--provenance` : signe l'artefact via OIDC GitHub (sigstore).
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm --filter @rezdevops/pii-detectors publish --no-git-checks --access public --provenance
+
+      - name: Publish @rezdevops/pii-scanner-engine
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: pnpm --filter @rezdevops/pii-scanner-engine publish --no-git-checks --access public --provenance
+
+  # ---------------------------------------------------------------------------
+  # 7. GitHub Pages. La branche main fait l'office de référence ; on publie
+  #    depuis le dist déjà construit.
+  # ---------------------------------------------------------------------------
+  deploy-pages:
+    name: Deploy GitHub Pages
+    runs-on: ubuntu-latest
+    needs: [verify, build-app]
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: dist-app
+          path: dist-app
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist-app
+
+      - name: Deploy to Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+  # ---------------------------------------------------------------------------
+  # 8. GitHub Release : agrège ZIP + SBOM + checksums et déclenche les notes
+  #    auto-générées. Cosign signe les fichiers attachés.
+  # ---------------------------------------------------------------------------
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      [verify, build-zip, build-sbom, build-docker, publish-npm, deploy-pages]
+    permissions:
+      contents: write
+      id-token: write # cosign keyless
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Download ZIP
+        uses: actions/download-artifact@v4
+        with:
+          name: standalone-zip
+          path: release-assets
+
+      - name: Download SBOM
+        uses: actions/download-artifact@v4
+        with:
+          name: sbom
+          path: release-assets
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign release assets (keyless blob signatures)
+        env:
+          COSIGN_EXPERIMENTAL: "1"
+        working-directory: release-assets
+        run: |
+          for f in *.zip bom.json; do
+            [ -f "$f" ] || continue
+            cosign sign-blob --yes --output-signature "${f}.sig" --output-certificate "${f}.pem" "${f}"
+          done
+          ls -la
+
+      - name: Compute SHA-256 manifest
+        working-directory: release-assets
+        run: |
+          sha256sum *.zip bom.json > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/*.zip
+            release-assets/*.zip.sha256
+            release-assets/*.zip.sig
+            release-assets/*.zip.pem
+            release-assets/bom.json
+            release-assets/bom.json.sig
+            release-assets/bom.json.pem
+            release-assets/SHA256SUMS.txt
+          body: |
+            ## Distribution
+
+            - **Démo en ligne** : https://rezdevops.github.io/pii-scanner-web/
+            - **Image Docker** : `docker pull ${{ env.IMAGE_NAME }}:${{ needs.verify.outputs.version }}`
+            - **Archive ZIP standalone** : `${{ needs.build-zip.outputs.zip-name }}` (double-clic, fonctionne hors ligne)
+            - **npm** : `npm install @rezdevops/pii-detectors @rezdevops/pii-scanner-engine`
+
+            ## Vérification souveraineté
+
+            Cette image, ce ZIP et ces packages ne font **aucune requête réseau au runtime**.
+            Voir [Comment vérifier la souveraineté](https://rezdevops.github.io/pii-scanner-web/verifier/) pour reproduire la démonstration en moins d'une minute.
+
+            ## Vérification des signatures
+
+            Toutes les artefacts sont signés via [sigstore/cosign](https://docs.sigstore.dev/) en mode keyless OIDC.
+
+            ```bash
+            # SBOM CycloneDX et ZIP standalone
+            cosign verify-blob --certificate bom.json.pem --signature bom.json.sig \
+              --certificate-identity-regexp 'https://github.com/${{ github.repository }}/.github/workflows/release.yml@refs/tags/v.+' \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+              bom.json
+
+            # Image Docker
+            cosign verify ${{ env.IMAGE_NAME }}:${{ needs.verify.outputs.version }} \
+              --certificate-identity-regexp 'https://github.com/${{ github.repository }}/.github/workflows/release.yml@refs/tags/v.+' \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com
+            ```
+
+            ## SHA-256
+
+            Voir `SHA256SUMS.txt` attaché.

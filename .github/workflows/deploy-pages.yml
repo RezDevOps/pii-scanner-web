@@ -1,9 +1,12 @@
 # Workflow de déploiement de la SPA sur GitHub Pages.
-# Désactivé tant que l'application n'a pas de contenu utile (S3+) :
-# déclenchement manuel uniquement via `workflow_dispatch`.
-# À basculer en push: branches [main] au moment du tag v1.0.0.
+#
+# Depuis v1.0.0 (S5), le déploiement principal de Pages est piloté par le
+# workflow `release.yml` (job `deploy-pages`) déclenché sur push de tag `v*`.
+# Ce workflow-ci reste en `workflow_dispatch` uniquement, comme filet de
+# secours pour les rebuilds manuels d'urgence (correction de configuration
+# Pages, redéploiement après incident, etc.).
 
-name: Deploy to GitHub Pages
+name: Deploy to GitHub Pages (manual)
 
 on:
   workflow_dispatch:
@@ -35,14 +38,19 @@ jobs:
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build production
-        run: pnpm build
+      - name: Build production (base href ./)
+        # `--base-href ./` : chemins relatifs, fonctionne identiquement sur
+        # `https://rezdevops.github.io/pii-scanner-web/` et derrière un
+        # reverse-proxy avec sous-chemin. Cohérent release.yml.
+        run: |
+          pnpm -r --filter='./packages/*' build
+          pnpm --filter pii-scanner-web build:rel
         env:
           NODE_ENV: production
 

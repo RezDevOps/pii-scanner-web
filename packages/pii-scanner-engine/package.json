@@ -1,6 +1,6 @@
 {
   "name": "@rezdevops/pii-scanner-engine",
-  "version": "0.4.1",
+  "version": "1.0.0",
   "description": "Orchestration de scan PII : parseurs CSV / XLSX / PDF / TXT / JSON / DOCX / HTML (binaires lazy-loadés), pool de Web Workers, agrégation des findings, génération des exports JSON / Markdown / HTML autonome.",
   "license": "AGPL-3.0-only",
   "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",
@@ -55,12 +55,12 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@e965/xlsx": "^0.20.3",
     "@rezdevops/pii-detectors": "workspace:*",
     "comlink": "^4.4.2",
     "mammoth": "^1.8.0",
     "papaparse": "^5.4.1",
-    "pdfjs-dist": "^4.7.76",
-    "xlsx": "^0.18.5"
+    "pdfjs-dist": "^4.7.76"
   },
   "devDependencies": {
     "@types/papaparse": "^5.3.15",

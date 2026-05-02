@@ -79,8 +79,20 @@ Depuis `v0.4.1`, la CSP du SPA est resserrée à un niveau « strict » : `defau
    - `connect-src 'none'` — aucune requête réseau possible au runtime (`fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`),
    - `script-src 'self' 'wasm-unsafe-eval'` — scripts uniquement servis par l'origine du SPA, plus l'autorisation WebAssembly indispensable à PDF.js,
    - `object-src 'none'`, `media-src 'none'`, `manifest-src 'none'`, `frame-src 'none'` — aucun plug-in, audio/vidéo, manifest PWA ou iframe embarqués,
-   - `frame-ancestors 'none'` — l'application ne peut pas être iframée par un site tiers (anti-clickjacking),
    - `base-uri 'none'` + `form-action 'none'` — pas de redirection détournée via `<base>` ou `<form action>`.
+
+### Note sur `frame-ancestors` (anti-clickjacking)
+
+La directive `frame-ancestors` est **volontairement absente du `<meta>`** : par spec WHATWG, elle n'est honorée que servie via header HTTP (la version meta est silencieusement ignorée et génère un warning console). L'anti-clickjacking est donc fourni de la manière suivante selon le canal :
+
+| Distribution                        | Protection `frame-ancestors`         | Mécanisme                              |
+| ----------------------------------- | ------------------------------------ | -------------------------------------- |
+| Image Docker (`ghcr.io/...`)        | ✅ active                            | header HTTP nginx + `X-Frame-Options`  |
+| Auto-hébergement avec reverse-proxy | ✅ active si vous propagez le header | configuration de votre proxy           |
+| Démo GitHub Pages                   | ⚠️ non garantie                      | GH Pages n'autorise pas headers custom |
+| Archive ZIP standalone (`file://`)  | n/a                                  | pas de contexte HTTP                   |
+
+Compromis assumé pour `v1.0` : la démo GH Pages n'a pas la protection anti-clickjacking. Le risque effectif est faible — l'app ne manipule aucune donnée serveur, et un site qui l'iframerait n'aurait accès qu'à ce que l'utilisateur traite chez lui. Pour les déploiements production sensibles, privilégier l'image Docker (`ghcr.io/rezdevops/pii-scanner-web`) qui pose le header HTTP via nginx.
 
 Toute tentative de violation est visible dans la console DevTools (onglet _Console_ → message en rouge commençant par `Refused to connect to ...`, `Refused to load script ...`, etc.). Aucun message de ce type ne doit apparaître pendant un scan : la SPA respecte sa propre CSP.
 

@@ -1,6 +1,14 @@
 /**
  * Parseur Excel — couvre `.xlsx` (Office Open XML) et `.xls` (Excel 97-2003
- * binaire) via SheetJS Community Edition (`xlsx` sur npm).
+ * binaire) via le fork patché de SheetJS Community Edition
+ * (`@e965/xlsx` sur npm).
+ *
+ * **Migration v1.0.0 (S5)** : `xlsx@^0.18.5` → `@e965/xlsx@^0.20.x`. Le
+ * package officiel `xlsx` sur npm n'est plus patché contre les CVE
+ * connues (Prototype Pollution `CVE-2023-30533` + ReDoS). `@e965/xlsx`
+ * est un fork drop-in (même API, mêmes types) maintenu et patché. Cf.
+ * `docs/adr/0005-sheetjs-pour-xlsx.md` mis à jour pour acter la
+ * migration.
  *
  * Stratégie : `XLSX.read(arrayBuffer, { type: "array", cellDates: true })`
  * → workbook. On itère feuille par feuille, ligne par ligne, cellule par
@@ -16,12 +24,12 @@
  *
  * Choix de dépendance : voir `docs/adr/0005-sheetjs-pour-xlsx.md`.
  *
- * **Lazy-loading (v0.4.1)** : `xlsx` (~250 ko bundle) est chargé via
- * `import()` dynamique au premier appel à `parse()`. Tant qu'on ne
+ * **Lazy-loading (v0.4.1)** : `@e965/xlsx` (~250 ko bundle) est chargé
+ * via `import()` dynamique au premier appel à `parse()`. Tant qu'on ne
  * scanne pas un .xlsx/.xls, le module SheetJS ne pèse pas dans le
  * bundle initial de l'app. Cf. `docs/adr/0007-lazy-loading-parseurs-binaires.md`.
  */
-import type { CellObject, WorkSheet } from "xlsx";
+import type { CellObject, WorkSheet } from "@e965/xlsx";
 
 import type { FileFormat } from "../types.js";
 import type { FileParser, ParserInput, TextChunk } from "./types.js";
@@ -31,10 +39,10 @@ import type { FileParser, ParserInput, TextChunk } from "./types.js";
  * pour qu'un second `parse()` réutilise la même instance — un seul
  * `import()` par durée de vie du module.
  */
-let xlsxModulePromise: Promise<typeof import("xlsx")> | null = null;
-function loadXlsxModule(): Promise<typeof import("xlsx")> {
+let xlsxModulePromise: Promise<typeof import("@e965/xlsx")> | null = null;
+function loadXlsxModule(): Promise<typeof import("@e965/xlsx")> {
   if (!xlsxModulePromise) {
-    xlsxModulePromise = import("xlsx");
+    xlsxModulePromise = import("@e965/xlsx");
   }
   return xlsxModulePromise;
 }
@@ -74,7 +82,7 @@ function createXlsxParser(format: "xlsx" | "xls"): FileParser {
 async function* parseSheet(
   sheetName: string,
   ws: WorkSheet,
-  utils: typeof import("xlsx").utils,
+  utils: typeof import("@e965/xlsx").utils,
 ): AsyncIterable<TextChunk> {
   const ref = ws["!ref"];
   if (typeof ref !== "string" || ref.length === 0) {
