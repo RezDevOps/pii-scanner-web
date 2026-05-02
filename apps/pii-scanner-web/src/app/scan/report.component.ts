@@ -1,7 +1,7 @@
 /**
  * `psw-report` — rapport interactif d'un scan PII.
  *
- * Trois sections :
+ * Quatre sections :
  * 1. **Récapitulatif** : compteurs par catégorie de PII (mat-chip-set),
  *    plus le total général et le temps de scan agrégé.
  * 2. **Filtres** : par fichier, par détecteur, par sévérité (mat-form-field
@@ -9,21 +9,25 @@
  *    table).
  * 3. **Table** : mat-table avec tri sur les colonnes principales et la
  *    valeur masquée par défaut (`.psw-mask`, hover/focus pour révéler).
- *
- * Le composant n'effectue **aucun export** ni copie de PII en clair :
- * les exports JSON / Markdown / HTML sont planifiés pour S4.
+ * 4. **Exports** (v0.4.0) : trois boutons JSON / Markdown / HTML autonome.
+ *    La logique pure (sérialisation, nom de fichier, téléchargement) est
+ *    déléguée à `export-actions.ts` pour rester testable.
  */
 import { CommonModule } from "@angular/common";
 import {
   ChangeDetectionStrategy,
   Component,
+  Inject,
   Input,
+  Optional,
   ViewChild,
   signal,
   computed,
   effect,
 } from "@angular/core";
+import { DOCUMENT } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { MatButtonModule } from "@angular/material/button";
 import { MatCardModule } from "@angular/material/card";
 import { MatChipsModule } from "@angular/material/chips";
 import { MatFormFieldModule } from "@angular/material/form-field";
@@ -36,6 +40,11 @@ import type { Severity } from "@rezdevops/pii-detectors";
 import type { ScanReport } from "@rezdevops/pii-scanner-engine";
 
 import type { EnrichedFinding } from "./scan.service";
+import {
+  buildExportPayload,
+  triggerDownload,
+  type ExportFormat,
+} from "./export-actions";
 
 // Logique pure du rapport (filtres, tri, labels) — extraite dans
 // `report.utils.ts` pour pouvoir la tester sans charger Angular
@@ -61,6 +70,7 @@ interface SummaryEntry {
   imports: [
     CommonModule,
     FormsModule,
+    MatButtonModule,
     MatCardModule,
     MatChipsModule,
     MatFormFieldModule,
@@ -82,6 +92,38 @@ interface SummaryEntry {
               {{ formatDate(report.generatedAt) }} · engine
               {{ report.engineVersion }}
             </p>
+            <div class="exports" role="group" aria-label="Exports du rapport">
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                (click)="exportAs('json')"
+                aria-label="Télécharger le rapport au format JSON"
+              >
+                <mat-icon aria-hidden="true">code</mat-icon>
+                JSON
+              </button>
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                (click)="exportAs('md')"
+                aria-label="Télécharger le rapport au format Markdown"
+              >
+                <mat-icon aria-hidden="true">article</mat-icon>
+                Markdown
+              </button>
+              <button
+                mat-stroked-button
+                color="primary"
+                type="button"
+                (click)="exportAs('html')"
+                aria-label="Télécharger le rapport HTML autonome"
+              >
+                <mat-icon aria-hidden="true">html</mat-icon>
+                HTML autonome
+              </button>
+            </div>
           </header>
 
           <!-- Récap par catégorie -->
@@ -245,6 +287,12 @@ interface SummaryEntry {
       .head {
         margin-bottom: 1rem;
       }
+      .exports {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+      }
       .h2 {
         margin: 0;
       }
@@ -346,6 +394,34 @@ export class ReportComponent {
   protected detectorFilter = "";
   protected severityFilter: Severity | "" = "";
 
+  /**
+   * Document injecté pour permettre aux tests Vitest d'utiliser un DOM
+   * happy-dom et au runtime Angular de récupérer le `Document` global.
+   * Nullable pour les contextes SSR.
+   */
+  constructor(
+    @Optional() @Inject(DOCUMENT) private readonly doc: Document | null,
+  ) {
+    effect(() => {
+      const all = this._findings();
+      this.dataSource.data = applyFilters(all, {
+        fileName: this.fileFilter,
+        detectorId: this.detectorFilter,
+        severity: this.severityFilter || undefined,
+      });
+      this.dataSource.sortingDataAccessor = sortingDataAccessor;
+    });
+  }
+
+  /** Déclenche le téléchargement du rapport au format demandé. */
+  protected exportAs(format: ExportFormat): void {
+    if (!this.report || !this.doc) {
+      return;
+    }
+    const payload = buildExportPayload(this.report, { format });
+    triggerDownload(payload, this.doc);
+  }
+
   private readonly _findings = signal<readonly EnrichedFinding[]>([]);
 
   protected readonly dataSource: MatTableDataSource<EnrichedFinding> =
@@ -370,20 +446,6 @@ export class ReportComponent {
       }))
       .sort((a, b) => b.count - a.count);
   });
-
-  constructor() {
-    effect(() => {
-      const all = this._findings();
-      this.dataSource.data = applyFilters(all, {
-        fileName: this.fileFilter,
-        detectorId: this.detectorFilter,
-        severity: this.severityFilter || undefined,
-      });
-      // Réglage du sortingDataAccessor pour permettre le tri sur les
-      // sous-champs (severity → ordre canonique, file → fileName, etc.).
-      this.dataSource.sortingDataAccessor = sortingDataAccessor;
-    });
-  }
 
   protected detectorLabel(id: string): string {
     return this.detectorLabels[id] ?? id;

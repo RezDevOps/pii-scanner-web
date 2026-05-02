@@ -8,7 +8,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
-**v0.3.0 — sprint S3 (UI Angular).** Première version utilisable de bout en bout. On dépose des fichiers (drag & drop ou bouton), ils sont scannés en arrière-plan dans un pool de Web Workers Comlink, le rapport s'affiche en table filtrable (par fichier / détecteur / sévérité). Les 10 formats sont actifs (CSV / TSV / TXT / MD / JSON / XLSX / XLS / PDF / DOCX / HTML), 5 détecteurs cœur sont branchés (email, téléphone FR, NIR, IBAN, SIRET) avec validation par clé. **Rien ne sort du navigateur** — vérifiable en direct via DevTools (`docs/comment-verifier-souverainete.md`).
+**v0.4.0 — sprint S4 (détecteurs étendus + exports).** Les **12 détecteurs du périmètre v1.0 sont livrés** (5 cœur de S1 + BIC, TVA intracom FR, carte bancaire, code postal FR, plaque FR, date de naissance, adresse postale FR). Le rapport est désormais **téléchargeable en JSON, Markdown ou HTML autonome** (single-file, sans dépendance, CSP stricte, valeurs masquées par défaut). **Rien ne sort du navigateur** — vérifiable en direct via DevTools (`docs/comment-verifier-souverainete.md`).
 
 | Jalon                                                                      | Statut   | Sortie                |
 | -------------------------------------------------------------------------- | -------- | --------------------- |
@@ -17,7 +17,8 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 | S2 — Engine + parseurs texte (CSV/TSV/TXT/MD/JSON) + pool Workers + façade | ✅ livré | tag `v0.2.0`          |
 | S2.1 — Parseurs binaires (XLSX / XLS / PDF / DOCX / HTML)                  | ✅ livré | tag `v0.2.1`          |
 | S3 — UI Angular (drop zone, rapport interactif, branchement pool)          | ✅ livré | tag `v0.3.0`          |
-| S4 — Détecteurs restants, exports JSON/MD/HTML, CSP, accessibilité         | à venir  | tag `v0.4.0`          |
+| S4 — 7 détecteurs étendus + exports JSON / Markdown / HTML autonome        | ✅ livré | tag `v0.4.0`          |
+| S4.1 — CSP stricte + audit deps + WCAG AA + lazy-loading parseurs binaires | à venir  | tag `v0.4.1`          |
 | S5 — Pipeline release, démo en ligne, doc finale                           | à venir  | **tag `v1.0.0`**      |
 
 ## Promesse
@@ -38,9 +39,9 @@ Quand un dirigeant, un DPO ou un RH se demande « est-ce que ce fichier que je m
 
 **Dix formats de fichier** : `.csv` `.tsv` `.xlsx` `.xls` `.pdf` `.docx` `.txt` `.md` `.json` `.html`.
 
-**Quatre formats de sortie** : rapport interactif dans la SPA, export JSON, export Markdown, export HTML autonome (single-file).
+**Quatre formats de sortie** : rapport interactif dans la SPA, export JSON (schéma versionné), export Markdown (lecture DPO), export HTML autonome (single-file, CSP stricte, sans script).
 
-Pour le détail, voir `docs/detecteurs.md`.
+Pour le détail, voir `docs/detecteurs.md` et `docs/exports.md`.
 
 ## Comment vérifier la promesse souveraineté
 
@@ -61,7 +62,7 @@ pnpm install --frozen-lockfile
 pnpm format:check  # Prettier (CI bloquant)
 pnpm build         # build des trois couches (ordre : packages avant app)
 pnpm lint          # tsc --noEmit sur les deux tsconfig
-pnpm test          # tests Vitest (60 détecteurs + 87 engine + 18 app = 165 verts)
+pnpm test          # tests Vitest (env. 280 verts au total : ~140 détecteurs + ~115 engine + ~30 app)
 pnpm dev           # SPA Angular en watch sur http://localhost:4200
 ```
 

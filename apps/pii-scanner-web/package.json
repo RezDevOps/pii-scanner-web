@@ -1,6 +1,6 @@
 {
   "name": "pii-scanner-web",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "description": "Application Angular du scanner PII local-only — UI uniquement, consomme @rezdevops/pii-scanner-engine via une façade.",
   "license": "AGPL-3.0-only",

@@ -2,6 +2,42 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [0.4.0] — 2026-05-02
+
+Sprint S4 — **détecteurs étendus + couche d'exports**. Les 12 détecteurs du périmètre v1.0 sont livrés. Le rapport est désormais téléchargeable en JSON (schéma versionné), Markdown (lecture DPO/juriste) et HTML autonome (single-file, CSP stricte, sans script). Découpé du sprint cadrage S4 : ce qui touche au durcissement plate-forme (CSP stricte, audit deps, WCAG AA complet, lazy-loading parseurs binaires) bascule sur S4.1 / `v0.4.1` pour préserver la qualité de chaque livraison (cf. apprentissage S2 → S2.1).
+
+### Ajouts
+
+- `@rezdevops/pii-detectors` — **7 nouveaux détecteurs** :
+  - `bic` — BIC ISO 9362 (`BBBBCCLL[BBB]`, 8 ou 11 caractères, code pays vérifié contre la table ISO 3166-1 alpha-2 de 250 codes). Confiance `high`, sévérité `high`. `metadata.institution`, `country`, `location`, `branch?`, `length` exposés.
+  - `tva-intracom-fr` — TVA intracommunautaire France, validation par clé MOD 97 sur SIREN (formule DGFiP `clé = (12 + 3 × (SIREN mod 97)) mod 97`). Variante alphanumérique de clé non couverte (limite assumée, < 1 % des cas). Primitive `computeTvaIntracomFrKey(siren)` exportée.
+  - `card` — numéro de carte bancaire (PAN), 13 à 19 chiffres avec espaces ou tirets tolérés, validation Luhn + identification de marque par préfixe (Visa, Mastercard série 5 et série 2 `2221-2720`, Amex, Discover, JCB, Diners, UnionPay). Un PAN valide Luhn sans marque connue est rejeté (faux positif probable). Sévérité `critical`. Primitive `detectCardBrand` et type `CardBrand` exportés.
+  - `postal-code-fr` — code postal France, plages `01000-95999` ∪ `97000-98999`. Confiance et sévérité `low`. Primitive `isFrenchPostalCode` exportée.
+  - `license-plate-fr` — plaque immat France, deux passes : SIV (`AA-123-AA`, lettres `I`/`O`/`U` exclues) en confiance `high`, FNI (`1234 AB 56`) en confiance `medium` avec validation du département (01-95 ∪ 971-976). Plaques diplomatiques / militaires / WW / TT hors périmètre.
+  - `date-of-birth` — date au calendrier grégorien strict, 4 formats reconnus (`JJ/MM/AAAA`, `JJ-MM-AAAA`, `JJ.MM.AAAA`, `AAAA-MM-JJ`), gestion bissextiles, année bornée à `[1900, 2100]` (indépendant de l'horloge). Confiance `low` assumée (impossible de distinguer une DDN d'une autre date sans contexte). Primitive `isCalendarDateValid` exportée.
+  - `postal-address-fr` — adresse FR (heuristique tête + queue) : numéro + suffixe `bis/ter/quater` toléré + type de voie (~25 reconnus, abréviations incluses) + nom de voie + code postal valide + ville. `metadata.postalCode`, `city?` exposés. Confiance `low` assumée (cadrage § 10 critère 1 documente les faux positifs acceptables sur cette catégorie).
+- `@rezdevops/pii-detectors` — table `ISO_3166_ALPHA2` (Set figé, 250 codes) + helper `isIso3166Alpha2` exportés.
+- `coreDetectors` étendue de 5 → **12 détecteurs**, ordonnée par criticité décroissante (card → iban → bic → nir → siret → tva-intracom-fr → postal-address-fr → phone-fr → email → license-plate-fr → date-of-birth → postal-code-fr).
+- `@rezdevops/pii-scanner-engine` — **couche d'exports** : `toJsonReport`, `toMarkdownReport`, `toHtmlReport`. Schéma JSON versionné via `REPORT_SCHEMA_VERSION` (`"1.0"`). Type `MaskLevel` (`'none' | 'partial' | 'full'`, défaut `partial`) — le masquage s'applique à la frontière de sortie, l'engine garde la valeur brute en interne. Helper pur `maskValue` également exporté.
+- HTML autonome — **single-file, zéro `<script>`** (interactivité CSS-only via `:hover` et `:focus-within`), CSP stricte posée en `<meta>` (`default-src 'none'; style-src 'unsafe-inline'`), échappement HTML systématique (anti-XSS testé), mode sombre auto, style imprimable, accessibilité (`tabindex` + `aria-label` sur les valeurs masquées).
+- `apps/pii-scanner-web` — barre d'exports dans `psw-report` : 3 boutons `mat-stroked-button` (JSON, Markdown, HTML autonome) avec `mat-icon` et `aria-label` explicite. Logique pure extraite dans `export-actions.ts` (`buildExportPayload`, `triggerDownload`) pour rester testable en happy-dom sans charger Angular Material.
+- `docs/exports.md` — documentation détaillée des 3 sérialiseurs (schéma JSON, structure Markdown, contraintes du HTML autonome).
+- `docs/detecteurs.md` réécrit avec les 7 nouvelles entrées (algorithme, source normative, exemples positifs/négatifs, edge cases, faux positifs connus, limites assumées).
+
+### Modifications
+
+- `@rezdevops/pii-detectors` bumpé `0.1.0` → `0.2.0` (ajout de 7 détecteurs + 5 primitives publiques + table ISO 3166). Aucune rupture d'API : la surface S1 est inchangée, `coreDetectors` est étendue.
+- `@rezdevops/pii-scanner-engine` bumpé `0.3.0` → `0.4.0` (ajout de la couche d'exports + 6 entrées dans la surface publique). Aucune rupture.
+- App `pii-scanner-web` bumpée `0.3.0` → `0.4.0` (boutons d'exports + dépendance MatButtonModule).
+- Constante `VERSION` alignée dans les deux packages, `ENGINE_VERSION` mise à jour.
+- README — section « Statut » mise à jour, table roadmap actualisée (S4 ✅, ajout d'une ligne S4.1).
+
+### Notes
+
+- Tag repo `v0.4.0` reflète la livraison principale (engine + détecteurs côté lib, app côté UI).
+- Le `DetectorId` `siren` reste déclaré dans `types.ts` mais sans implémentation : un SIREN nu (9 chiffres + Luhn) génère trop de faux positifs sans contexte. Couverture future via détecteur composite SIREN-en-contexte (post-v1).
+- L'audit dépendances, la CSP stricte côté SPA, l'audit WCAG AA complet et le lazy-loading des parseurs binaires (`xlsx` ~250 ko, `pdf.js` ~600 ko, `mammoth` ~80 ko) basculent sur S4.1 pour ne pas dégrader la qualité de la livraison v0.4.0. Bundle initial reste à ~1.97 Mo en attendant.
+
 ## [0.3.0] — 2026-05-02
 
 Sprint S3 — **interface Angular** branchée sur l'engine. Première version utilisable de bout en bout : on dépose des fichiers, ils sont scannés en arrière-plan dans un pool de Web Workers, le rapport s'affiche en table filtrable. Rien ne sort du navigateur — la promesse souveraineté tient au runtime.

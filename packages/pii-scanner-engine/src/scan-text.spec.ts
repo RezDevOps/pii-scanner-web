@@ -3,6 +3,7 @@ import {
   coreDetectors,
   emailDetector,
   ibanDetector,
+  nirDetector,
   validateNir,
 } from "@rezdevops/pii-detectors";
 import { scanText } from "./scan-text.js";
@@ -24,7 +25,10 @@ describe("scanText", () => {
     const validKey = validateNir("2900175123456" + "00").computedKey ?? "00";
     const nir = "2900175123456" + validKey;
     const text = `RIB FR1420041010050500013M02606 — contact : alice@example.com — assurance ${nir}`;
-    const report = scanText(text, coreDetectors);
+    // Sélection explicite (pas `coreDetectors`) pour ne pas devoir mettre à
+    // jour ce test à chaque ajout de détecteur dans `coreDetectors` (S4 :
+    // l'IBAN ci-dessus contient `02606` qui est aussi un code postal valide).
+    const report = scanText(text, [ibanDetector, emailDetector, nirDetector]);
 
     expect(report.findings.map((f) => f.detector)).toEqual([
       "iban",
@@ -37,6 +41,12 @@ describe("scanText", () => {
       const curr = report.findings[i]?.location.start ?? 0;
       expect(curr).toBeGreaterThan(prev);
     }
+  });
+
+  it("scanne avec coreDetectors étendu (12 détecteurs en v0.4.0)", () => {
+    // Sanity check : `coreDetectors` doit contenir au moins les 12 détecteurs
+    // attendus du périmètre v1.0 (cf. cadrage § 4.1).
+    expect(coreDetectors.length).toBeGreaterThanOrEqual(12);
   });
 
   it("dé-duplique les findings exactement identiques (detector, start, end)", () => {
