@@ -89,6 +89,21 @@ Ouvrez une issue sur [github.com/RezDevOps/pii-scanner-web/issues](https://githu
 
 Une fuite éventuelle est traitée comme un bug critique. Toute correction sera annoncée publiquement dans le `CHANGELOG.md`.
 
+## Et les fichiers Excel / PDF / Word — où va leur contenu ?
+
+Depuis `v0.2.1`, les parseurs binaires (XLSX/XLS via SheetJS, PDF via PDF.js, DOCX via mammoth, HTML via `DOMParser` natif) sont actifs. **Aucun de ces parseurs ne fait d'appel réseau** : ils décompressent et lisent le contenu localement, dans le thread courant ou dans un Web Worker selon le mode d'exécution choisi.
+
+Le PDF.js est configuré explicitement pour la souveraineté :
+
+- `isEvalSupported: false` — pas d'évaluation de JS embarqué dans le PDF (certains PDF anciens en contiennent),
+- `disableFontFace: true` — pas de chargement de polices externes,
+- `useSystemFonts: false` — pas d'accès au filesystem système pour les polices,
+- `workerSrc = ""` — pas de worker externe instancié par défaut, le rendu texte tourne en monothread interne.
+
+Vous pouvez vérifier dans DevTools (onglet Réseau) qu'aucune requête ne part lors du scan d'un .pdf, .xlsx, .docx ou .html. Si l'une apparaissait, ce serait un bug critique — voir _Si vous trouvez une fuite_ ci-dessous.
+
+Pas d'OCR : un PDF scanné (image dans la page) ne produit aucun texte et donc zéro finding, sans erreur. L'OCR via Tesseract.js est reporté à `v1.1` — il est lui aussi 100 % local quand il sera ajouté.
+
 ## Auditabilité du code
 
 Le code source de l'application est intégralement public sous licence AGPL-3.0. Trois portes d'entrée pour audit :
@@ -96,5 +111,7 @@ Le code source de l'application est intégralement public sous licence AGPL-3.0.
 - la **CSP** dans `apps/pii-scanner-web/src/index.html`,
 - les **détecteurs** dans `packages/pii-detectors/src/` (lib pure, sans I/O),
 - l'**engine** dans `packages/pii-scanner-engine/src/` (orchestration, sans `fetch`).
+
+Les ADRs `0004` (mammoth), `0005` (SheetJS) et `0006` (PDF.js) documentent les choix de dépendances pour les formats binaires, leurs licences (toutes permissives), leur poids et leur surface d'attaque.
 
 Aucune télémétrie, aucune analytics, aucun tracking, jamais. Voir le cadrage § 12 _Engagements anti-dérive_.

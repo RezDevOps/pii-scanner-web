@@ -37,14 +37,27 @@ export interface TextChunk {
  * Source minimale dont a besoin un parseur. Sous-ensemble compatible avec
  * `File` (DOM) et avec un objet synthétique fabriqué côté CLI/test.
  *
- * Volontairement restreint à ce qu'on consomme réellement (`text()`,
+ * Restreint à ce qu'on consomme réellement (`text()`, `arrayBuffer()`,
  * `name`, `size`) pour ne pas interdire les implémentations alternatives.
+ *
+ * Les parseurs **texte** (CSV, TSV, TXT, MD, JSON) utilisent `text()` ;
+ * les parseurs **binaires** (XLSX, PDF, DOCX) utilisent `arrayBuffer()` ;
+ * le parseur HTML utilise `text()` (le DOM se recompose à partir du UTF-8).
+ *
+ * Les deux méthodes sont requises (et non l'une OU l'autre) car la façade
+ * `runScan` ne sait pas, sans inspecter le format, lequel sera appelé. Les
+ * implémentations DOM `File`/`Blob` les fournissent toutes deux nativement.
  */
 export interface ParserInput {
   readonly name: string;
   readonly size: number;
   /** Lit l'intégralité du contenu en chaîne UTF-8. Conforme à `Blob.text()`. */
   text(): Promise<string>;
+  /**
+   * Lit l'intégralité du contenu en `ArrayBuffer`. Conforme à
+   * `Blob.arrayBuffer()`. Utilisé par les parseurs binaires (XLSX/PDF/DOCX).
+   */
+  arrayBuffer(): Promise<ArrayBuffer>;
 }
 
 /**

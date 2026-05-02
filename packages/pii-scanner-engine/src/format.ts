@@ -3,10 +3,12 @@
  * fallback sur le `type` MIME quand l'extension est ambiguë.
  *
  * Aucune lecture du contenu : la détection est syntaxique, rapide, et
- * suffit pour les formats supportés en `v0.2.0` (CSV/TSV/TXT/MD/JSON).
- * Une vérification de signature de fichier (magic bytes) sera ajoutée
- * en `v0.2.1` quand les formats binaires (XLSX, PDF, DOCX) entreront
- * en jeu, où l'extension seule ne suffit plus.
+ * suffit pour tous les formats supportés depuis `v0.2.1` (CSV/TSV/TXT/
+ * MD/JSON + XLSX/XLS/PDF/DOCX/HTML). Une vérification de signature de
+ * fichier (magic bytes) pourra être ajoutée plus tard si on voit des
+ * cas d'extension trompeuse en pratique — en `v0.2.1` on fait
+ * confiance à l'extension : c'est cohérent avec le contexte (un DPO
+ * sait quel fichier il traite).
  */
 import type { FileFormat } from "./types.js";
 
@@ -22,9 +24,7 @@ const EXTENSION_MAP: Readonly<Record<string, FileFormat>> = {
   markdown: "md",
   json: "json",
   ndjson: "json",
-  // Formats déclarés mais reportés en v0.2.1 (cf. cadrage § 4.2 +
-  // CHANGELOG [0.2.0]) — détectés ici pour produire un message d'erreur
-  // explicite, plutôt que de les traiter comme inconnus.
+  // Formats activés en v0.2.1 (cf. CHANGELOG [0.2.1]).
   xlsx: "xlsx",
   xls: "xls",
   pdf: "pdf",
@@ -34,8 +34,12 @@ const EXTENSION_MAP: Readonly<Record<string, FileFormat>> = {
 };
 
 /**
- * Formats actifs en `v0.2.0`. L'ordre est documentaire (CSV en tête =
- * cas d'usage le plus fréquent en mission RGPD TPE/PME).
+ * Formats actifs depuis `v0.2.1`. L'ordre est documentaire (CSV en
+ * tête = cas d'usage le plus fréquent en mission RGPD TPE/PME ;
+ * binaires en queue).
+ *
+ * @deprecated `ACTIVE_FORMATS_V0_2_0` est conservé pour rétrocompat ;
+ *             utiliser `ACTIVE_FORMATS` pour la liste à jour.
  */
 export const ACTIVE_FORMATS_V0_2_0: ReadonlyArray<FileFormat> = [
   "csv",
@@ -45,18 +49,30 @@ export const ACTIVE_FORMATS_V0_2_0: ReadonlyArray<FileFormat> = [
   "json",
 ];
 
-/**
- * Formats déclarés mais reportés en `v0.2.1`. Présents dans `FileFormat`
- * pour stabiliser le type public dès `v0.2.0`, mais bloqués à la
- * détection avec une erreur dédiée pour ne pas crasher silencieusement.
- */
-export const DEFERRED_FORMATS_V0_2_1: ReadonlyArray<FileFormat> = [
+/** Liste à jour des formats activement supportés par l'engine. */
+export const ACTIVE_FORMATS: ReadonlyArray<FileFormat> = [
+  "csv",
+  "tsv",
+  "txt",
+  "md",
+  "json",
   "xlsx",
   "xls",
   "pdf",
   "docx",
   "html",
 ];
+
+/**
+ * Formats déclarés mais reportés. **Vide depuis `v0.2.1`** : tous les
+ * `FileFormat` sont activement parsés. La constante reste exportée pour
+ * rétrocompatibilité — sera retirée en `v1.0`.
+ *
+ * @deprecated Aucun format n'est différé depuis v0.2.1. Cette liste
+ *             reste exportée pour ne pas casser les consommateurs qui
+ *             la lisaient. Sera retirée en v1.0.
+ */
+export const DEFERRED_FORMATS_V0_2_1: ReadonlyArray<FileFormat> = [];
 
 /**
  * Erreur levée quand l'extension n'appartient à aucun format connu.
@@ -112,8 +128,9 @@ export interface FileDescriptor {
  * Détecte le format d'un fichier à partir de son nom (extension).
  *
  * @throws `UnsupportedFormatError` si l'extension est inconnue.
- * @throws `DeferredFormatError` si l'extension correspond à un format
- *   reporté à `v0.2.1`.
+ * @throws `DeferredFormatError` réservé pour réintroduction future si un
+ *   format devait être réactivé puis désactivé. Inerte depuis `v0.2.1`
+ *   (liste différée vide).
  */
 export function detectFormat(file: FileDescriptor): FileFormat {
   const dotIndex = file.name.lastIndexOf(".");
@@ -122,6 +139,9 @@ export function detectFormat(file: FileDescriptor): FileFormat {
   if (!fmt) {
     throw new UnsupportedFormatError(file.name);
   }
+  // Le check est conservé pour pouvoir « différer » un format à
+  // nouveau si une dépendance était retirée en urgence — actuellement
+  // la liste est vide, donc inerte.
   if (DEFERRED_FORMATS_V0_2_1.includes(fmt)) {
     throw new DeferredFormatError(file.name, fmt);
   }

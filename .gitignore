@@ -44,3 +44,7 @@ yarn-error.log*
 *.tgz
 *.zip
 sbom*.json
+
+# Brouillons et fichiers tmp générés par tooling
+COMMIT_MSG*.txt
+_tmp_*

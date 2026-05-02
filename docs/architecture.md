@@ -1,6 +1,6 @@
 # Architecture
 
-> **Statut : v0.2.0 (S2).** Engine et pool Worker en place. Façade `runScan` opérationnelle en main-thread ; le pool Comlink est livré et activable depuis l'app Angular en S3. Les parseurs binaires (XLSX/PDF/DOCX/HTML) arrivent en `v0.2.1`.
+> **Statut : v0.2.1 (S2.1).** Engine et pool Worker en place. Façade `runScan` opérationnelle en main-thread ; le pool Comlink est livré et activable depuis l'app Angular en S3. **Les 10 formats sont actifs** : CSV / TSV / TXT / MD / JSON (texte) + XLSX / XLS / PDF / DOCX / HTML (binaires).
 
 ## Découpage en trois couches
 
@@ -22,6 +22,10 @@
 │  │ detect   │  │ CSV/TSV│  │ MainThread  │  │ enrichis   │   │
 │  │          │  │TXT/MD/ │  │ ou          │  │ (line/path)│   │
 │  │          │  │ JSON   │  │ WorkerPool  │  │            │   │
+│  │          │  │ +XLSX  │  │             │  │            │   │
+│  │          │  │ /PDF/  │  │             │  │            │   │
+│  │          │  │ DOCX/  │  │             │  │            │   │
+│  │          │  │ HTML   │  │             │  │            │   │
 │  └──────────┘  └────────┘  └─────────────┘  └────────────┘   │
 └────────────────────────────┬─────────────────────────────────┘
                              │ texte (TextChunk) → findings
@@ -36,20 +40,20 @@
 
 Chaque couche est testable indépendamment : la lib pure avec Vitest en environnement Node sur des chaînes, l'engine avec Vitest (env Node + happy-dom ponctuel pour les tests touchant `File`) sur des fichiers fixtures synthétiques, l'UI avec Vitest/Playwright en S3.
 
-## Flux de données (v0.2.0)
+## Flux de données (v0.2.1)
 
 1. L'utilisateur dépose un ou plusieurs `File` (drag-drop ou input ; en S2 c'est l'app Angular S3 qui posera l'UI).
 2. La couche UI appelle `runScan(files)` ou `runScanStream(files)` exporté par `@rezdevops/pii-scanner-engine`.
 3. Pour chaque fichier, la façade :
    - **détecte** le format via `detectFormat()` (extension → `FileFormat`) ;
-   - **sélectionne** le parseur (`csvParser`, `tsvParser`, `txtParser`, `mdParser`, `jsonParser`) ;
-   - **streame** les `TextChunk` (texte, `line`, `path`) vers le `Runner` ;
+   - **sélectionne** le parseur (`csvParser`, `tsvParser`, `txtParser`, `mdParser`, `jsonParser`, `xlsxParser`, `xlsParser`, `pdfParser`, `docxParser`, `htmlParser`) ;
+   - **streame** les `TextChunk` (texte, `line`, `path`) vers le `Runner`. Les parseurs texte streament ligne par ligne (CSV / TXT / MD) ou par champ (JSON). Les parseurs binaires streament cellule par cellule (XLSX), paragraphe par paragraphe (DOCX), nœud par nœud (HTML), page par page (PDF) ;
    - **dispatche** chaque chunk sur le `Runner` (par défaut `MainThreadRunner` ; un `WorkerPoolRunner` Comlink est disponible et activable côté app) ;
    - **agrège** les findings en enrichissant chaque finding avec la coordonnée fichier (`line`, `path`) sans écraser ce que le détecteur a déjà produit.
 4. La façade émet :
    - en mode `runScan` : un `ScanReport` agrégé en fin de course ;
    - en mode `runScanStream` : une suite d'évènements `ScanProgress` (`file-started`, `file-completed`, `file-failed`) consommables via `for await` (S3 transformera en `signal`/`Observable`).
-5. Les fichiers en erreur (`unsupported-format`, `deferred-format`, `parser-error`) ne stoppent pas le scan global : la façade enchaîne sur le fichier suivant.
+5. Les fichiers en erreur (`unsupported-format`, `parser-error`) ne stoppent pas le scan global : la façade enchaîne sur le fichier suivant. Le code `deferred-format` reste défini dans le type public mais n'est plus émis depuis `v0.2.1` (tous les `FileFormat` ont un parseur).
 
 Aucun appel réseau à aucune étape, dans aucun runner. La CSP `connect-src 'none'` du `index.html` provoquerait un échec immédiat visible en console si un import transitif tentait quelque chose.
 
@@ -84,9 +88,19 @@ L'app Angular (S3) injectera `WorkerPoolRunner` via `runScan(files, { runner })`
 - **Bornes mémoire** : reportées à S3 — sera traitée côté UI (warning utilisateur > 100 Mo par fichier).
 - **Format JSON** : parse complet (pas de streaming) en `v0.2.0`. Streaming NDJSON sera réévalué si profilage le réclame.
 
-## Points figés en S2.1 (parseurs binaires)
+## Points figés en S2.1 (parseurs binaires — `v0.2.1`)
 
-- **XLSX** via SheetJS — bundle ~250 ko, ADR à rédiger.
-- **PDF** via PDF.js — texte uniquement (OCR repoussé en `v1.1` cf. cadrage § 5).
-- **DOCX** via mammoth — extraction texte simple.
-- **HTML** via `DOMParser` natif (zéro dep).
+- **HTML** via `DOMParser` natif (zéro dep, fourni par happy-dom en test). Émet un chunk par nœud texte non-vide avec un path DOM (`body > main > p[2]`). Ignore `<script>` / `<style>` / `<noscript>` / `<template>`. Aucune ADR dédiée — décision triviale (zéro dep).
+- **DOCX** via **mammoth** (`extractRawText({ arrayBuffer })`). Émet un chunk par paragraphe, path = `paragraph[N]`. Voir [ADR 0004](adr/0004-mammoth-pour-docx.md).
+- **XLSX / XLS** via **SheetJS Community Edition** (`xlsx` sur npm). Itère cell par cell, path = `Sheet!Address`. Voir [ADR 0005](adr/0005-sheetjs-pour-xlsx.md).
+- **PDF** via **PDF.js** (`pdfjs-dist`, build legacy). Texte uniquement, un chunk par page, path = `page[N]`. Pas d'OCR (repoussé en `v1.1` cf. cadrage § 4.6). Voir [ADR 0006](adr/0006-pdfjs-pour-pdf.md).
+
+### Coût bundle des dépendances binaires
+
+| Dépendance   | Couvre               | Poids gzippé | Licence    |
+| ------------ | -------------------- | ------------ | ---------- |
+| `mammoth`    | DOCX (texte)         | ~150 ko      | BSD-2      |
+| `xlsx`       | XLSX/XLS/CSV         | ~250 ko      | Apache 2.0 |
+| `pdfjs-dist` | PDF (texte sans OCR) | ~600 ko      | Apache 2.0 |
+
+Total surcoût bundle navigateur de v0.2.1 par rapport à v0.2.0 : ~1 Mo gzippé. Acceptable pour la cible (DPO/RSSI/auditeurs scannant des dossiers complets — le coût de chargement initial est amorti dès le 1er fichier).

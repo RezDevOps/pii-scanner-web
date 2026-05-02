@@ -2,6 +2,34 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [0.2.1] — 2026-05-02
+
+Sprint S2.1 — activation des **4 parseurs binaires** reportés depuis `v0.2.0` : XLSX/XLS via SheetJS, PDF via PDF.js, DOCX via mammoth, HTML via `DOMParser` natif. Les 10 formats déclarés dans `FileFormat` sont désormais activement parsés. Une ADR par dépendance ajoutée. La surface d'API publique de l'engine n'a pas changé : la façade `runScan(File[])` route automatiquement vers le parseur approprié.
+
+### Ajouts
+
+- `@rezdevops/pii-scanner-engine` — `htmlParser` (zéro dépendance, basé sur `DOMParser`). Parcourt le DOM en pré-ordre, ignore `<script>` / `<style>` / `<noscript>` / `<template>`, filtre les nœuds purement blancs (indentation HTML), produit un path lisible `body > main > p[2]` avec indexation 1-based uniquement quand un tag a plusieurs frères.
+- `@rezdevops/pii-scanner-engine` — `docxParser` via **mammoth** (`extractRawText({ arrayBuffer })`). Émet un chunk par paragraphe non-vide, path = `paragraph[N]`, line = N. Pas de styles, pas d'images. Voir [ADR 0004](docs/adr/0004-mammoth-pour-docx.md).
+- `@rezdevops/pii-scanner-engine` — `xlsxParser` et `xlsParser` via **SheetJS Community Edition** (`xlsx` sur npm). Itère feuilles → lignes → cellules, path = `Sheet!Address` (notation Excel native), `cellDates: true` pour les dates en `Date` natif. Voir [ADR 0005](docs/adr/0005-sheetjs-pour-xlsx.md).
+- `@rezdevops/pii-scanner-engine` — `pdfParser` via **PDF.js** (`pdfjs-dist`, build legacy). Extrait le texte page par page via `getTextContent()`, path = `page[N]`. Configuration sécuritaire : `isEvalSupported: false`, `disableFontFace: true`, `useSystemFonts: false`, `workerSrc = ""` (monothread interne). **Pas d'OCR** (cf. cadrage § 4.6, repoussé en `v1.1`). Voir [ADR 0006](docs/adr/0006-pdfjs-pour-pdf.md).
+- Fixtures binaires partagées dans `src/parsers/__fixtures__/binary-fixtures.ts` (.docx, .xlsx, .pdf inlinés en base64, sans fichier binaire dans le repo). Générées une fois via Python (`zipfile` pour DOCX, `openpyxl` pour XLSX, `reportlab` pour PDF).
+- Constante `ACTIVE_FORMATS` exportée (10 entrées : 5 texte + 5 binaires).
+- Test d'intégration end-to-end de la façade `runScan` sur un .docx réel, validant la pile `detectFormat → docxParser → MainThreadRunner → enrichissement findings`.
+
+### Modifications
+
+- `ParserInput` et `ScanInputFile` étendus avec `arrayBuffer(): Promise<ArrayBuffer>` (compat directe avec `Blob`/`File` du DOM, requis par les parseurs binaires). `text()` reste utilisé par les parseurs texte et HTML.
+- `EXTENSION_MAP` de `format.ts` simplifié : tous les formats sont actifs, plus de bifurcation `deferred`. Les classes `DeferredFormatError` et le code d'erreur `deferred-format` restent exportés (rétrocompat) mais ne sont plus émis.
+- Dépendances ajoutées à `@rezdevops/pii-scanner-engine` : `mammoth ^1.8.0`, `pdfjs-dist ^4.7.76`, `xlsx ^0.18.5`. Toutes sous licence permissive (BSD-2 ou Apache 2.0), compatibles AGPL.
+- `engineVersion` bumpé à `0.2.1`. `pii-detectors` reste à `0.1.0` (aucun code modifié dans la lib pure).
+- README + `docs/architecture.md` + `docs/comment-verifier-souverainete.md` mis à jour pour refléter les 10 formats actifs et les configurations sécuritaires PDF.js.
+- `.gitignore` enrichi pour ne plus laisser entrer les brouillons `COMMIT_MSG*.txt` et `_tmp_*` (artefacts de tooling local).
+
+### Notes
+
+- Coût bundle navigateur : ~1 Mo gzippé en plus par rapport à v0.2.0 (`mammoth ~150 ko + xlsx ~250 ko + pdfjs-dist ~600 ko`). Acceptable pour la cible (DPO/RSSI scannant des dossiers complets ; le coût est amorti dès le 1ᵉʳ fichier). Trade-off documenté dans `docs/architecture.md`.
+- Les ADRs 0004 / 0005 / 0006 documentent les alternatives écartées (parseur XML maison, ExcelJS, pdf-parse) et les justifications retenues.
+
 ## [0.2.0] — 2026-05-02
 
 Couche engine effective : façade multi-fichiers, parseurs texte, pool de Web Workers Comlink. Décision de scope : seuls les **5 parseurs texte** (CSV, TSV, TXT, MD, JSON) sont actifs dans cette version ; les **4 parseurs binaires** (XLSX, PDF, DOCX, HTML) — déjà déclarés dans l'API publique `FileFormat` — arrivent en `v0.2.1`. Justification dans le cadrage § 9 (changelog v0.2) : tenir le garde-fou anti-dérive plutôt qu'embarquer SheetJS + PDF.js + mammoth dans une livraison bâclée.

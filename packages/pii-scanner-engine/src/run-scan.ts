@@ -35,13 +35,19 @@ import { ENGINE_VERSION } from "./version.js";
 
 /**
  * `File`-compatible minimal accepté par la façade. Utilise le DOM `File`
- * (avec `name`, `size`, `type`, `text()`) ou un objet synthétique.
+ * (avec `name`, `size`, `type`, `text()`, `arrayBuffer()`) ou un objet
+ * synthétique.
+ *
+ * Les deux méthodes (`text()` + `arrayBuffer()`) sont requises depuis
+ * v0.2.1 pour couvrir les parseurs binaires (XLSX, PDF, DOCX). Toute
+ * implémentation de `File`/`Blob` du DOM les fournit nativement.
  */
 export interface ScanInputFile {
   readonly name: string;
   readonly size: number;
   readonly type?: string;
   text(): Promise<string>;
+  arrayBuffer(): Promise<ArrayBuffer>;
 }
 
 export interface RunScanOptions {

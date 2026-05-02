@@ -7,11 +7,11 @@
  * - `v0.2.0` : façade `runScan` / `runScanStream`, abstraction
  *   `Runner` (`MainThreadRunner`, `WorkerPoolRunner`), parseurs CSV /
  *   TSV / TXT / MD / JSON, helpers `detectFormat` / `tryDetectFormat`.
- *
- * Les parseurs binaires (XLSX, PDF, DOCX, HTML) sont reportés à `v0.2.1`
- * (cf. CHANGELOG et addendum cadrage). Leurs `FileFormat` restent
- * déclarés ici dès `v0.2.0` pour que l'API publique ne casse pas
- * lorsqu'on les activera.
+ * - `v0.2.1` : parseurs binaires activés (XLSX/XLS via SheetJS, PDF
+ *   via PDF.js, DOCX via mammoth, HTML via DOMParser natif). Tous les
+ *   `FileFormat` exposés depuis v0.1.0 sont désormais activement
+ *   parsés. Voir ADRs 0004, 0005, 0006 pour le détail des choix de
+ *   dépendance.
  */
 
 // --- Surface S1 (héritée v0.1.0) ---
@@ -27,8 +27,9 @@ export type {
   ScanReport,
 } from "./types.js";
 
-// --- Détection de format (v0.2.0) ---
+// --- Détection de format (v0.2.0+) ---
 export {
+  ACTIVE_FORMATS,
   ACTIVE_FORMATS_V0_2_0,
   DEFERRED_FORMATS_V0_2_1,
   DeferredFormatError,
@@ -58,15 +59,20 @@ export type {
   WorkerPoolRunnerOptions,
 } from "./runner/index.js";
 
-// --- Parseurs (v0.2.0) ---
+// --- Parseurs (v0.2.0 + v0.2.1) ---
 // Exposés individuellement pour tests + variantes (CLI). Une UI
 // applicative ne devrait normalement consommer que `runScan`.
 export {
   csvParser,
+  docxParser,
+  htmlParser,
   jsonParser,
   mdParser,
+  pdfParser,
   tsvParser,
   txtParser,
+  xlsParser,
+  xlsxParser,
   getParserForFormat,
 } from "./parsers/index.js";
 export type { FileParser, ParserInput, TextChunk } from "./parsers/index.js";

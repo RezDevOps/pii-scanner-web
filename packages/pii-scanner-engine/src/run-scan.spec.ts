@@ -7,9 +7,14 @@ import { describe, expect, it } from "vitest";
 
 import { coreDetectors } from "@rezdevops/pii-detectors";
 
+import {
+  MINIMAL_DOCX_BASE64,
+  base64ToArrayBuffer,
+} from "./parsers/__fixtures__/binary-fixtures.js";
 import { createMainThreadRunner } from "./runner/index.js";
 import { runScan, runScanStream } from "./run-scan.js";
 import type { ScanProgress } from "./types.js";
+import { ENGINE_VERSION } from "./version.js";
 
 const FIXED_ID = () => "scan-test-id";
 const FIXED_NOW = () => 1735689600000; // 2025-01-01T00:00:00.000Z
@@ -33,7 +38,7 @@ describe("runScan (one-shot)", () => {
     });
     expect(report.id).toBe("scan-test-id");
     expect(report.generatedAt).toBe("2025-01-01T00:00:00.000Z");
-    expect(report.engineVersion).toBe("0.2.0");
+    expect(report.engineVersion).toBe(ENGINE_VERSION);
     expect(report.files).toHaveLength(1);
     const fileResult = report.files[0]!;
     expect(fileResult.format).toBe("csv");
@@ -128,20 +133,24 @@ describe("runScanStream (progression)", () => {
     });
   });
 
-  it("émet file-failed avec code deferred-format pour XLSX/PDF/DOCX/HTML", async () => {
-    const files = ["x.xlsx", "doc.pdf", "page.html", "letter.docx"].map(
-      (name) => new File(["..."], name),
+  it("scanne un .docx réel de bout en bout (parseur + runner + enrichissement)", async () => {
+    // Fixture .docx contenant `marie.dupont@example.fr` au paragraphe 3.
+    const buffer = base64ToArrayBuffer(MINIMAL_DOCX_BASE64);
+    const file = new File([buffer], "rh.docx", {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+    const report = await runScan([file], { idFactory: () => "scan-test-id" });
+    expect(report.files).toHaveLength(1);
+    const result = report.files[0]!;
+    expect(result.format).toBe("docx");
+    const emails = result.findings.filter((f) => f.detector === "email");
+    expect(emails.map((f) => f.value)).toContain("marie.dupont@example.fr");
+    // L'email est dans le 3ᵉ paragraphe non-vide → metadata.path doit
+    // refléter cette localisation.
+    const emailFinding = emails.find(
+      (f) => f.value === "marie.dupont@example.fr",
     );
-    const fails: ScanProgress[] = [];
-    for await (const ev of runScanStream(files)) {
-      if (ev.type === "file-failed") {
-        fails.push(ev);
-      }
-    }
-    expect(fails).toHaveLength(4);
-    for (const fail of fails) {
-      expect(fail).toMatchObject({ errorCode: "deferred-format" });
-    }
+    expect(emailFinding?.metadata?.path).toBe("paragraph[2]");
   });
 
   it("continue à scanner les fichiers suivants après un échec", async () => {
