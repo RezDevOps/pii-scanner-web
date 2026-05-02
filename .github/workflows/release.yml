@@ -119,6 +119,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Pré-requis du build Angular : esbuild résout `@rezdevops/pii-detectors`
+      # et `@rezdevops/pii-scanner-engine` via le symlink workspace, lit le champ
+      # `exports` qui pointe sur `./dist/index.js`, et plante si ces fichiers
+      # n'existent pas encore. Le script root `pnpm build` enchaîne packages →
+      # app, mais `build:rel` n'existe qu'au niveau de l'app : il faut donc
+      # builder les packages frères avant. Ne pas supprimer ce step sans
+      # introduire une orchestration équivalente (script root `build:rel` ou
+      # bascule en TypeScript Project References).
+      - name: Build packages (lib + engine)
+        run: pnpm -r --filter='./packages/*' build
+
       - name: Build production (base href ./)
         # `--base-href ./` : chemins relatifs, fonctionne identiquement en
         # file:// (ZIP standalone), sur GH Pages (sous-chemin `/pii-scanner-web/`),
