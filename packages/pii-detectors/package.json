@@ -1,6 +1,6 @@
 {
   "name": "@rezdevops/pii-detectors",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Détecteurs déterministes de données à caractère personnel (PII) — bibliothèque pure, sans I/O ni DOM. Validation par clé de contrôle pour NIR, SIRET, IBAN, TVA intracom, carte bancaire.",
   "license": "AGPL-3.0-only",
   "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",
@@ -47,8 +47,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "echo \"(tests Jest viendront en S1 avec les premiers détecteurs)\" && exit 0",
-    "lint": "echo \"(eslint configuré en S1)\" && exit 0",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "lint": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "clean": "rm -rf dist"
   },
   "engines": {

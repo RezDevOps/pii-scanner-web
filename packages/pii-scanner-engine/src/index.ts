@@ -1,11 +1,15 @@
 /**
  * Point d'entrée public de `@rezdevops/pii-scanner-engine`.
  *
- * En sprint S0, ce module n'expose que les types d'orchestration. Les
- * parseurs, le pool de workers et la génération des exports arrivent en S2.
+ * Stable depuis la `v0.1.0` : `scanText` est le seul contrat exposé. Les
+ * parseurs (CSV/XLSX/PDF/...), le pool de Web Workers et la génération des
+ * exports arrivent en S2/S3 sans changer la signature de `scanText`.
  */
 
 import type { Finding } from "@rezdevops/pii-detectors";
+
+export { scanText } from "./scan-text.js";
+export type { TextScanReport } from "./scan-text.js";
 
 /**
  * Format de fichier reconnu par l'engine. Toute valeur hors de cette liste est
@@ -54,4 +58,4 @@ export interface ScanReport {
   readonly files: readonly FileScanResult[];
 }
 
-export const VERSION = "0.0.0";
+export const VERSION = "0.1.0";

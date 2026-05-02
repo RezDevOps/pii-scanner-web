@@ -1,6 +1,6 @@
 {
   "name": "@rezdevops/pii-scanner-engine",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Orchestration de scan PII : parseurs CSV / XLSX / PDF / TXT / JSON / DOCX / HTML, pool de Web Workers, agrégation des findings, génération des exports JSON / Markdown / HTML autonome.",
   "license": "AGPL-3.0-only",
   "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",
@@ -45,8 +45,9 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "test": "echo \"(tests Jest viendront en S2 avec les premiers parseurs)\" && exit 0",
-    "lint": "echo \"(eslint configuré en S2)\" && exit 0",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "lint": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
