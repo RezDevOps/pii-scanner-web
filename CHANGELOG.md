@@ -2,6 +2,32 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.0.1] — 2026-05-02
+
+Sprint S5.1 — **hotfix CI release**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.0` (et inchangés depuis `v0.4.1`). Cette release rejoue le pipeline de distribution `v1.0` qui n'avait pas pu produire l'image Docker, le ZIP standalone, le SBOM CycloneDX ni le déploiement GitHub Pages, faute d'un bug d'orchestration dans `.github/workflows/release.yml`. Les packages npm (`@rezdevops/pii-detectors`, `@rezdevops/pii-scanner-engine`) avaient été publiés manuellement en `1.0.0` sans provenance OIDC ; ils sont republiés ici en `1.0.1` avec la signature sigstore keyless attendue.
+
+### Corrections
+
+- **`.github/workflows/release.yml` — job `build-app`** : ajout d'un step `Build packages (lib + engine)` (`pnpm -r --filter='./packages/*' build`) **avant** `Build production (base href ./)`. Bug corrigé : le job appelait directement `pnpm --filter pii-scanner-web build:rel` (qui se réduit à `ng build --base-href ./`), sans passer par le script root `pnpm build` qui orchestre packages → app dans le bon ordre. esbuild résolvait alors `@rezdevops/pii-detectors` et `@rezdevops/pii-scanner-engine` via le symlink workspace, lisait leur champ `exports` qui pointe sur `./dist/index.js`, et plantait avec « Could not resolve » + « The module "./dist/index.js" was not found on the file system » car les packages frères n'avaient pas été buildés. Le step ajouté est strictement le même que celui déjà présent dans le job `publish-npm` (parité d'orchestration). Alternative écartée pour rester surgical : créer un script root `build:rel` symétrique à `build` (à reconsidérer si une troisième variante de build apparaît). Ne pas supprimer ce step sans introduire l'orchestration équivalente.
+
+### Modifications
+
+- **`packages/pii-detectors/package.json`** — bumpé `1.0.0` → `1.0.1`. Aucun autre changement.
+- **`packages/pii-scanner-engine/package.json`** — bumpé `1.0.0` → `1.0.1`. Aucun autre changement.
+- **`apps/pii-scanner-web/package.json`** — bumpé `1.0.0` → `1.0.1`.
+- **Constantes `DETECTORS_VERSION` (`packages/pii-detectors/src/index.ts`) et `ENGINE_VERSION` (`packages/pii-scanner-engine/src/version.ts`)** alignées à `1.0.1` — la badge de version affichée dans le footer de la SPA et l'`engineVersion` embarqué dans tous les exports JSON / Markdown / HTML reflètent désormais `1.0.1`.
+- **`README.md` — section `## Statut`** mise à jour, ligne « S5.1 — Hotfix CI release » ajoutée à la table roadmap.
+
+### Sécurité
+
+- **Provenance OIDC enfin appliquée aux deux packages npm.** En `v1.0.0`, le job `publish-npm` n'avait pas pu s'exécuter (dépendance sur `build-app` qui plantait) ; les packages avaient donc été publiés manuellement depuis le poste de Rudy, sans la signature sigstore keyless `--provenance`. Le hotfix `v1.0.1` rejoue le pipeline complet, ce qui aligne enfin les artefacts npm sur la posture souveraineté annoncée (chaîne de signature reproductible, lien vers le commit GitHub via OIDC). `publishConfig: { access: "public", provenance: true }` reste en place dans les deux `package.json`.
+
+### Notes
+
+- **Pas de re-tag de `v1.0.0`.** L'immutabilité du tag est préservée. La GitHub Release `v1.0.0` reste vide d'artefacts (pas de ZIP / SBOM / Docker attachés), c'est documenté dans la GH Release `v1.0.1` qui les fournit. Les packages npm `1.0.0` restent publiés (sans provenance) pour ne pas casser les installations en cours, mais l'usage recommandé devient immédiatement `1.0.1`.
+- **Aucune migration utilisateur.** API publique des deux packages strictement identique. Format des exports JSON / Markdown / HTML inchangé (`REPORT_SCHEMA_VERSION = "1.0"` reste en place). L'image Docker `ghcr.io/rezdevops/pii-scanner-web:1.0.0` n'ayant jamais été publiée, le tag `1.0.1` est de facto la première version Docker disponible.
+- **Lockfile pnpm régénéré** dans le même commit que les bumps de manifests, sinon `pnpm install --frozen-lockfile` casse en CI (cf. règle d'équipe).
+
 ## [1.0.0] — 2026-05-02
 
 Sprint S5 — **release pipeline + landing + page vérifier publique**. Premier tag stable du périmètre v1.0 cadrage. Aucune nouvelle feature fonctionnelle (les 12 détecteurs, 10 formats et 4 exports sont déjà en place depuis `v0.4.0`/`v0.4.1`) : cette version livre la chaîne de distribution et la couche éditoriale qui rendent le projet utilisable en clientèle.
