@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+# Pre-commit : reformate via Prettier les fichiers staged dont l'extension
+# est gérée. Si un fichier est modifié, il est ré-ajouté à l'index pour
+# que le commit contienne bien la version formatée.
+#
+# But : garantir que `pnpm format:check` passe en CI quel que soit
+# l'état du working tree au moment du commit. Voir CHANGELOG [0.3.0]
+# (session 17) — épisode `report.component.ts` non reformaté localement.
+#
+# Pas de dépendance supplémentaire (pas de lint-staged) : on ne tire que
+# Prettier (déjà en devDep) via `pnpm exec prettier`.
+
+# Récupère les fichiers staged dont l'extension est connue de Prettier.
+files=$(git diff --cached --name-only --diff-filter=ACMR \
+  | grep -E '\.(ts|html|scss|json|md)$' || true)
+
+if [ -z "$files" ]; then
+  exit 0
+fi
+
+# Reformate. `--write` modifie en place ; `--ignore-unknown` évite
+# d'échouer si un fichier listé n'a pas de parser (ne devrait pas
+# arriver vu le filtre ci-dessus, mais ceinture + bretelles).
+echo "$files" | xargs pnpm exec prettier --write --ignore-unknown
+
+# Réajoute les fichiers reformatés à l'index — sinon `git commit`
+# committrait la version pré-format.
+echo "$files" | xargs git add

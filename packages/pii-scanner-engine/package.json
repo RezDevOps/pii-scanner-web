@@ -1,6 +1,6 @@
 {
   "name": "@rezdevops/pii-scanner-engine",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Orchestration de scan PII : parseurs CSV / XLSX / PDF / TXT / JSON / DOCX / HTML, pool de Web Workers, agrégation des findings, génération des exports JSON / Markdown / HTML autonome.",
   "license": "AGPL-3.0-only",
   "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",
@@ -31,6 +31,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./worker": {
+      "types": "./dist/worker/scan-worker.d.ts",
+      "import": "./dist/worker/scan-worker.js"
     }
   },
   "files": [

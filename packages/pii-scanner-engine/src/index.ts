@@ -77,8 +77,9 @@ export {
 } from "./parsers/index.js";
 export type { FileParser, ParserInput, TextChunk } from "./parsers/index.js";
 
-// --- Worker API (v0.2.0) ---
+// --- Worker API (v0.2.0) + fabrique par défaut (v0.3.0) ---
 export type { ScanWorkerApi } from "./worker/scan-worker-api.js";
+export { createDefaultScanWorker } from "./worker/create-default-worker.js";
 
 // --- Version ---
 export { ENGINE_VERSION as VERSION } from "./version.js";

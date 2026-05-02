@@ -1,6 +1,6 @@
 # Architecture
 
-> **Statut : v0.2.1 (S2.1).** Engine et pool Worker en place. Façade `runScan` opérationnelle en main-thread ; le pool Comlink est livré et activable depuis l'app Angular en S3. **Les 10 formats sont actifs** : CSV / TSV / TXT / MD / JSON (texte) + XLSX / XLS / PDF / DOCX / HTML (binaires).
+> **Statut : v0.3.0 (S3).** Première version utilisable de bout en bout. UI Angular branchée sur la façade `runScanStream` ; le `WorkerPoolRunner` est instancié par le `ScanService` via la fabrique `createDefaultScanWorker()` exportée par l'engine. Les 10 formats restent actifs (CSV / TSV / TXT / MD / JSON + XLSX / XLS / PDF / DOCX / HTML). Les exports (JSON / Markdown / HTML autonome) et les détecteurs restants (BIC, TVA, CB, code postal, adresse, plaque, DDN) arrivent en S4.
 
 ## Découpage en trois couches
 

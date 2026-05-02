@@ -8,7 +8,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
-**v0.2.1 — sprint S2.1 (parseurs binaires).** Façade `runScan(File[])` opérationnelle. **Les 10 formats sont actifs** : 5 détecteurs cœur (email, tel FR, NIR, IBAN, SIRET) sur CSV / TSV / TXT / MD / JSON (texte) **et** XLSX / XLS / PDF / DOCX / HTML (binaires). Pool de Web Workers Comlink activable depuis l'app Angular en S3. Voir [CHANGELOG](CHANGELOG.md) et ADRs [0004 mammoth](docs/adr/0004-mammoth-pour-docx.md), [0005 SheetJS](docs/adr/0005-sheetjs-pour-xlsx.md), [0006 PDF.js](docs/adr/0006-pdfjs-pour-pdf.md).
+**v0.3.0 — sprint S3 (UI Angular).** Première version utilisable de bout en bout. On dépose des fichiers (drag & drop ou bouton), ils sont scannés en arrière-plan dans un pool de Web Workers Comlink, le rapport s'affiche en table filtrable (par fichier / détecteur / sévérité). Les 10 formats sont actifs (CSV / TSV / TXT / MD / JSON / XLSX / XLS / PDF / DOCX / HTML), 5 détecteurs cœur sont branchés (email, téléphone FR, NIR, IBAN, SIRET) avec validation par clé. **Rien ne sort du navigateur** — vérifiable en direct via DevTools (`docs/comment-verifier-souverainete.md`).
 
 | Jalon                                                                      | Statut   | Sortie                |
 | -------------------------------------------------------------------------- | -------- | --------------------- |
@@ -16,7 +16,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 | S1 — Couche détecteurs (5 cœur : email, tel FR, NIR, IBAN, SIRET)          | ✅ livré | tag `v0.1.0`          |
 | S2 — Engine + parseurs texte (CSV/TSV/TXT/MD/JSON) + pool Workers + façade | ✅ livré | tag `v0.2.0`          |
 | S2.1 — Parseurs binaires (XLSX / XLS / PDF / DOCX / HTML)                  | ✅ livré | tag `v0.2.1`          |
-| S3 — UI Angular (drop zone, rapport interactif, branchement pool)          | à venir  | tag `v0.3.0`          |
+| S3 — UI Angular (drop zone, rapport interactif, branchement pool)          | ✅ livré | tag `v0.3.0`          |
 | S4 — Détecteurs restants, exports JSON/MD/HTML, CSP, accessibilité         | à venir  | tag `v0.4.0`          |
 | S5 — Pipeline release, démo en ligne, doc finale                           | à venir  | **tag `v1.0.0`**      |
 
@@ -61,7 +61,7 @@ pnpm install --frozen-lockfile
 pnpm format:check  # Prettier (CI bloquant)
 pnpm build         # build des trois couches (ordre : packages avant app)
 pnpm lint          # tsc --noEmit sur les deux tsconfig
-pnpm test          # tests Vitest (60 détecteurs + ~85 engine = ~145 verts)
+pnpm test          # tests Vitest (60 détecteurs + 87 engine + 18 app = 165 verts)
 pnpm dev           # SPA Angular en watch sur http://localhost:4200
 ```
 

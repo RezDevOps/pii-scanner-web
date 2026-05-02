@@ -1,15 +1,55 @@
 /*
- * Styles globaux de l'application pii-scanner-web.
- * Charte UI alignée Brand Bible RezDevOps : sobre, contrastée, accessible.
- * Le thème Angular Material complet est posé en sprint S3.
+ * Styles globaux de pii-scanner-web — sprint S3.
+ *
+ * Stack : Angular Material 20 (M3, dark/light auto), thème indigo-sobre
+ * aligné Brand Bible (couleurs RezDevOps : bleu nuit / blanc cassé /
+ * accent ambre pour les findings critiques).
+ *
+ * Décisions :
+ * - Thème construit avec `mat.theme()` (M3) plutôt qu'un thème prebuilt
+ *   pour piloter la palette (souveraineté = identité, pas un thème
+ *   générique).
+ * - `density(-1)` pour resserrer la table des findings sans casser WCAG.
+ * - Variables CSS `--psw-*` conservées pour les composants custom-wrap
+ *   qui ne dépendent pas de Material (drop-zone visuelle, badges PII).
  */
+
+@use "@angular/material" as mat;
+
+@include mat.core();
+
+html {
+  color-scheme: light dark;
+
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$blue-palette,
+      ),
+      typography: Roboto,
+      density: -1,
+    )
+  );
+}
 
 :root {
   --psw-bg: #ffffff;
   --psw-fg: #1a1a1a;
   --psw-muted: #6b6b6b;
-  --psw-accent: #1f4f7a; /* bleu sobre, à figer en S3 avec la charte UI */
+  --psw-accent: #1f4f7a;
   --psw-border: #e2e2e2;
+  --psw-surface: #f5f7fa;
+  --psw-danger: #b3261e;
+  --psw-warning: #b8860b;
+  --psw-success: #2e7d32;
+
+  /* Couleurs par sévérité PII — alignées aux conventions Brand Bible. */
+  --psw-sev-critical: #b3261e;
+  --psw-sev-high: #d97706;
+  --psw-sev-medium: #b58900;
+  --psw-sev-low: #6b6b6b;
 }
 
 html,
@@ -31,4 +71,31 @@ a {
 *:focus-visible {
   outline: 2px solid var(--psw-accent);
   outline-offset: 2px;
+}
+
+/* Utilitaire : texte masqué par défaut, révélé au hover/focus.
+ * Usage : <span class="psw-mask" tabindex="0">…</span>
+ * Aligné avec le principe « ne jamais ré-imprimer un PII en clair par défaut ».
+ */
+.psw-mask {
+  filter: blur(4px);
+  transition: filter 80ms ease;
+  cursor: help;
+
+  &:hover,
+  &:focus-visible {
+    filter: none;
+  }
+}
+
+.psw-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }

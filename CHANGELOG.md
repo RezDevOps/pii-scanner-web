@@ -2,6 +2,30 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [0.3.0] — 2026-05-02
+
+Sprint S3 — **interface Angular** branchée sur l'engine. Première version utilisable de bout en bout : on dépose des fichiers, ils sont scannés en arrière-plan dans un pool de Web Workers, le rapport s'affiche en table filtrable. Rien ne sort du navigateur — la promesse souveraineté tient au runtime.
+
+### Ajouts
+
+- `pii-scanner-web` (app Angular 20) — coquille S0 remplacée par une vraie UI. Trois composants standalone : `psw-drop-zone` (drag & drop + bouton + clavier, `mat-card`), `psw-file-queue` (état par fichier + barre de progression globale et par-fichier, `mat-progress-bar`), `psw-report` (récap par catégorie en `mat-chip-set`, filtres par fichier / détecteur / sévérité, table `mat-table` triable). Toolbar `mat-toolbar` + snack-bar pour les rejets.
+- `ScanService` (`@Injectable` providedIn root) : signals `queue`, `isScanning`, `progress`, `report`, `findings` (computed). API `scan(files)` / `reset()` / `configureWorkerFactory(factory)`. Dispose le runner sur destroy. Pas de RxJS — on reste cohérent avec le « zero-RxJS » de l'engine (cadrage § 6.2).
+- `@rezdevops/pii-scanner-engine` — fonction `createDefaultScanWorker()` exportée depuis `index.ts` : crée un `Worker` via `new URL("./scan-worker.js", import.meta.url)` résolu **dans le contexte de l'engine**. L'app n'a plus à connaître la structure `dist/`. Sub-export `./worker` ajouté pour les bundlers qui préfèrent la résolution explicite.
+- Thème Material M3 personnalisé dans `styles.scss` (palette azure/blue, density `-1`). Variables CSS `--psw-sev-*` pour les couleurs de sévérité PII (alignement Brand Bible). Utilitaire `.psw-mask` (blur + reveal hover/focus) pour ne jamais réimprimer une PII en clair par défaut dans la table.
+- 18 tests Vitest côté app : `validateFiles` (drop-zone, 6 cases), `applyFilters` (rapport, 5 cases), `ScanService` (orchestration, 7 cases — utilise `MainThreadRunner` en happy-dom). Logique pure extraite dans `drop-zone.utils.ts` / `report.utils.ts` pour pouvoir tester sans charger Angular Material dans Vitest (limite JIT compiler signalée par Angular 20).
+
+### Modifications
+
+- `@rezdevops/pii-scanner-engine` bumpé à `0.3.0` (ajout d'API publique : `createDefaultScanWorker`, sub-export `/worker`). `pii-detectors` reste à `0.1.0` (aucun changement). App `pii-scanner-web` passe de `0.0.0` à `0.3.0`.
+- `angular.json` : `allowedCommonJsDependencies` étendu à `mammoth`. Budgets relevés à `2.5mb` warning / `3mb` erreur (la cible bundle de v0.4 sera réduite par tree-shaking + lazy-loading PDF.js, hors-scope S3).
+- Pipeline locale étendue à 3 packages : `apps/pii-scanner-web` reçoit `vitest.config.ts` et `tsconfig.test.json` alignés sur ceux de l'engine. Le script `lint` de l'app utilise `tsc --noEmit` (pas d'ESLint, idem packages).
+
+### Notes
+
+- Le `WorkerPoolRunner` est branché par défaut quand `Worker` est disponible. Sinon (Node, certains tests), fallback transparent sur `MainThreadRunner` — l'UI reste fonctionnelle, juste monothread.
+- Bundle initial v0.3.0 ≈ 1.97 Mo (468 ko transfert) : Material + PDF.js + mammoth + xlsx. La réduction est planifiée S4 (lazy-loading des parseurs binaires).
+- La page « Comment vérifier la souveraineté » et les exports JSON / Markdown / HTML restent prévus pour S4.
+
 ## [0.2.1] — 2026-05-02
 
 Sprint S2.1 — activation des **4 parseurs binaires** reportés depuis `v0.2.0` : XLSX/XLS via SheetJS, PDF via PDF.js, DOCX via mammoth, HTML via `DOMParser` natif. Les 10 formats déclarés dans `FileFormat` sont désormais activement parsés. Une ADR par dépendance ajoutée. La surface d'API publique de l'engine n'a pas changé : la façade `runScan(File[])` route automatiquement vers le parseur approprié.
