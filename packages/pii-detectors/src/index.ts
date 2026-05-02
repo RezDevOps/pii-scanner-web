@@ -54,4 +54,4 @@ export { isIso3166Alpha2, ISO_3166_ALPHA2 } from "./lib/iso-3166.js";
  * permettre aux consommateurs (engine, UI, rapports) de tracer la version
  * effectivement embarquée à un moment donné.
  */
-export const VERSION = "1.0.2";
+export const VERSION = "1.0.3";

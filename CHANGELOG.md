@@ -2,6 +2,31 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.0.3] — 2026-05-02
+
+Sprint S5.3 — **hotfix Dockerfile multi-arch**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.2`. Cette release refactore l'image Docker pour rétablir la production des deux variantes d'architecture (amd64 + arm64) sur GHCR, qui n'avaient pas pu être publiées en `v1.0.2` à cause d'un crash QEMU pendant le build arm64.
+
+### Corrections
+
+- **`Dockerfile`** : refactor en **mono-stage** (`nginx-unprivileged:1.27-alpine` uniquement). Suppression complète de l'étape builder `node:20-alpine` qui faisait `pnpm install --frozen-lockfile` puis `ng build` à l'intérieur du container. Bug corrigé : sur runner GitHub Actions amd64, le build de la variante arm64 passait par l'émulation QEMU, et l'exécution d'esbuild (utilisé par Angular CLI 20 pour le bundle production) déclenche des instructions SIMD modernes (NEON/SVE) que la version QEMU embarquée dans `tonistiigi/binfmt` ne sait pas émuler correctement. Résultat : `qemu: uncaught target signal 4 (Illegal instruction) - core dumped` après ~38 secondes de build, exit code non-zero, image arm64 jamais produite, tout le push GHCR annulé. Le refactor mono-stage transfère la responsabilité du build Angular à l'amont (`pnpm build` côté hôte ou step CI `build-app` qui upload le dist en artifact). Le Dockerfile ne fait plus que `COPY apps/pii-scanner-web/dist/browser /usr/share/nginx/html` + `COPY docker/nginx.conf` : aucun binaire à exécuter pendant le build, donc aucun besoin d'émulation QEMU. Bonus : image runtime ~6× plus légère (suppression de la couche node intermédiaire), build Docker beaucoup plus rapide (le dist est déjà calculé). Approche standard de la communauté Docker pour les images statiques multi-arch.
+- **`.dockerignore`** : suppression du pattern global `**/dist` qui excluait le dist Angular du contexte Docker (ce qui avait obligé l'ancien Dockerfile à rebuilder par lui-même). Remplacement par des exclusions ciblées : `packages/*/dist` (build TypeScript des deux packages workspace, inutile au runtime nginx), `apps/pii-scanner-web/dist/server` (SSR non utilisé). Le dist Angular client (`apps/pii-scanner-web/dist/browser/`) est désormais inclus dans le contexte. Commentaire explicite ajouté pour interdire de remettre le pattern `**/dist` global.
+- **`README.md` — section `## Build local Docker`** : mise à jour pour refléter la nouvelle pré-condition (`pnpm install` + `pnpm build` AVANT `docker build`). Note historique sur le crash QEMU `v1.0.2` ajoutée.
+
+### Modifications
+
+- **`packages/pii-detectors/package.json`** — bumpé `1.0.2` → `1.0.3`.
+- **`packages/pii-scanner-engine/package.json`** — bumpé `1.0.2` → `1.0.3`.
+- **`apps/pii-scanner-web/package.json`** — bumpé `1.0.2` → `1.0.3`.
+- **Constantes `DETECTORS_VERSION` et `ENGINE_VERSION`** alignées à `1.0.3`.
+- **`README.md` — table roadmap** : ligne « S5.3 — Hotfix Docker multi-arch » ajoutée.
+
+### Notes
+
+- **Pas de runners arm64 natifs pour l'instant.** GitHub Actions propose des runners `ubuntu-24.04-arm` gratuits pour repos publics depuis 2025 ; cette piste éliminerait le besoin de QEMU même si on rebuilait dans le Dockerfile. Approche écartée pour `v1.0.3` parce que (a) la cause racine (build inutile dans le Dockerfile) restait à corriger de toute façon, (b) le refactor mono-stage règle le problème sans changer la stratégie de runners, (c) ça aurait demandé un refactor lourd du `release.yml` (matrix runners + `docker manifest create` pour fusionner les digests).
+- **Pas de re-tag de `v1.0.2`.** L'immutabilité du tag est préservée. Les autres jobs de la release `v1.0.2` (publish-npm, build-zip, build-sbom, deploy-pages) ayant pu réussir une fois la protection de l'environnement `github-pages` ajustée côté UI, les artefacts `1.0.2` restent disponibles côté npm / GitHub Pages / SBOM. Seuls l'image Docker et la GitHub Release agrégée (qui dépend de `build-docker`) restent absentes pour `1.0.2` ; `v1.0.3` les fournit.
+- **Pré-condition GitHub UI déjà résolue.** La règle « Tag `v*` autorisé pour `github-pages` » ajoutée pour débloquer `v1.0.2` reste en place pour `v1.0.3`. Documentation à long terme : à intégrer dans un futur `BOOTSTRAP.md` qui listera toutes les configs GitHub UI nécessaires au pipeline release.
+- **Lockfile pnpm régénéré** dans le même commit que les bumps de manifests.
+
 ## [1.0.2] — 2026-05-02
 
 Sprint S5.2 — **hotfix CI SBOM**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.1`. Cette release migre l'outil de génération SBOM (`@cyclonedx/cyclonedx-npm` → `@cyclonedx/cdxgen`) pour rétablir la production de `bom.json` dans le pipeline release, ce qui débloque la création de la GitHub Release agrégée (ZIP + SBOM + signatures cosign).

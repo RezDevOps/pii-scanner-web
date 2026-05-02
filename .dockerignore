@@ -5,7 +5,19 @@
 .husky
 node_modules
 **/node_modules
-**/dist
+
+# Dists workspace : seul `apps/pii-scanner-web/dist/browser/` est
+# nécessaire au runtime nginx (cf. Dockerfile mono-stage v1.0.3+). Les
+# dists des packages workspace ne servent qu'au build TypeScript local
+# et n'ont rien à faire dans le contexte Docker. ATTENTION : ne PAS
+# remettre `**/dist` global ici, ça exclurait le dist Angular qui est la
+# raison d'être du build Docker (cf. release v1.0.2 où le mauvais
+# .dockerignore avait obligé l'ancien Dockerfile à rebuilder sous QEMU
+# arm64, d'où l'« illegal instruction » crash).
+packages/*/dist
+apps/pii-scanner-web/dist/server
+apps/pii-scanner-web/dist/server.mjs
+
 **/.angular
 **/coverage
 .DS_Store

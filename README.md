@@ -19,7 +19,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
-**v1.0.2 — hotfix CI SBOM (cyclonedx-npm → cdxgen).** Le job `build-sbom` du `release.yml` v1.0.1 plantait sur `npm error code ELSPROBLEMS` parce que `@cyclonedx/cyclonedx-npm` invoque `npm ls` sous le capot, incompatible avec la structure non standard de `node_modules/.pnpm/`. Migration vers `@cyclonedx/cdxgen`, l'outil CycloneDX qui parse `pnpm-lock.yaml` directement. Cette release rejoue le pipeline complet pour produire enfin le SBOM CycloneDX et la GitHub Release agrégée (ZIP + SBOM + signatures cosign). Aucun changement fonctionnel : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`.
+**v1.0.3 — hotfix Dockerfile multi-arch (suppression de l'étape builder QEMU).** Le job `build-docker` du `release.yml` v1.0.2 plantait avec `qemu: uncaught target signal 4 (Illegal instruction) - core dumped` pendant l'émulation arm64 sur runner amd64. L'ancien Dockerfile multi-stage faisait tourner `pnpm install` puis `ng build` (donc esbuild) sous QEMU, et certaines instructions SIMD modernes (NEON/SVE en arm64) ne sont pas correctement émulées. Refactor en mono-stage nginx pur : le dist Angular pré-buildé par la CI est copié directement dans nginx, plus aucun binaire à exécuter pendant le build Docker → pas besoin de QEMU. Bonus : image runtime ~6× plus légère (pas de couche node intermédiaire), build Docker beaucoup plus rapide. Aucun changement fonctionnel : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`.
 
 | Jalon                                                                      | Statut   | Sortie                |
 | -------------------------------------------------------------------------- | -------- | --------------------- |
@@ -32,7 +32,8 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 | S4.1 — CSP stricte + audit deps + WCAG AA + lazy-loading parseurs binaires | ✅ livré | tag `v0.4.1`          |
 | S5 — Pipeline release multi-cibles + landing + page vérifier publique      | ✅ livré | tag `v1.0.0`          |
 | S5.1 — Hotfix CI release (build packages avant bundle Angular)             | ✅ livré | tag `v1.0.1`          |
-| S5.2 — Hotfix CI SBOM (cyclonedx-npm → cdxgen, compat pnpm)                | ✅ livré | **tag `v1.0.2`**      |
+| S5.2 — Hotfix CI SBOM (cyclonedx-npm → cdxgen, compat pnpm)                | ✅ livré | tag `v1.0.2`          |
+| S5.3 — Hotfix Docker multi-arch (Dockerfile mono-stage, plus de QEMU)      | ✅ livré | **tag `v1.0.3`**      |
 
 ## Promesse
 
@@ -148,11 +149,13 @@ Cette séparation prépare une éventuelle déclinaison CLI ou desktop (Tauri) s
 ## Build local Docker
 
 ```bash
+pnpm install --frozen-lockfile
+pnpm build              # produit apps/pii-scanner-web/dist/browser/
 docker build -t pii-scanner-web:dev .
 docker run --rm -p 8080:8080 pii-scanner-web:dev
 ```
 
-L'image utilise un build multi-stage (Node 20 alpine pour le build, `nginx-unprivileged` 1.27 alpine pour le runtime). Aucun appel réseau au runtime. Configuration nginx auditable dans [`docker/nginx.conf`](docker/nginx.conf).
+Depuis `v1.0.3`, l'image est mono-stage (`nginx-unprivileged` 1.27 alpine uniquement) et requiert que le dist Angular soit déjà construit côté hôte avant `docker build`. Ce choix élimine le besoin d'émulation QEMU pendant le build multi-arch (cf. release `v1.0.2` où l'ancien builder Node sous QEMU arm64 plantait sur instructions SIMD non émulées). Aucun appel réseau au runtime. Configuration nginx auditable dans [`docker/nginx.conf`](docker/nginx.conf).
 
 ## Licence
 
