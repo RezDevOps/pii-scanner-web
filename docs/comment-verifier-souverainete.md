@@ -70,13 +70,27 @@ Si vous ne voyez pas de Workers, c'est que vous utilisez l'app Angular sans le p
 
 ## Vérification de la Content Security Policy
 
-La CSP est servie via une balise `<meta http-equiv="Content-Security-Policy">` dans `index.html`. Vous pouvez la lire en clair :
+Depuis `v0.4.1`, la CSP du SPA est resserrée à un niveau « strict » : `default-src 'none'`, ce qui force chaque type de ressource à être déclaré explicitement plutôt que d'hériter d'une politique large. Vous pouvez la lire en clair :
 
 1. Faites un clic-droit sur la page → _Afficher le code source de la page_.
 2. Cherchez `Content-Security-Policy`.
-3. Vérifiez la présence de `connect-src 'none'`.
+3. Vous devez voir notamment :
+   - `default-src 'none'` — verrou principal,
+   - `connect-src 'none'` — aucune requête réseau possible au runtime (`fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `navigator.sendBeacon`),
+   - `script-src 'self' 'wasm-unsafe-eval'` — scripts uniquement servis par l'origine du SPA, plus l'autorisation WebAssembly indispensable à PDF.js,
+   - `object-src 'none'`, `media-src 'none'`, `manifest-src 'none'`, `frame-src 'none'` — aucun plug-in, audio/vidéo, manifest PWA ou iframe embarqués,
+   - `frame-ancestors 'none'` — l'application ne peut pas être iframée par un site tiers (anti-clickjacking),
+   - `base-uri 'none'` + `form-action 'none'` — pas de redirection détournée via `<base>` ou `<form action>`.
 
-Cette directive interdit toute requête `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource` et `navigator.sendBeacon` au runtime. Toute tentative de violation est visible dans la console DevTools (onglet _Console_ → message en rouge commençant par `Refused to connect to ...`).
+Toute tentative de violation est visible dans la console DevTools (onglet _Console_ → message en rouge commençant par `Refused to connect to ...`, `Refused to load script ...`, etc.). Aucun message de ce type ne doit apparaître pendant un scan : la SPA respecte sa propre CSP.
+
+### Pourquoi `'unsafe-inline'` sur `style-src` ?
+
+Angular Material injecte des styles inline sur certains composants (animations `mat-ripple`, overlays). Ce compromis est documenté ; aucun script inline n'est autorisé (la directive `script-src` ne contient pas `'unsafe-inline'`). En pratique, l'app pourrait passer à `style-src 'self' 'sha256-...'` avec hash CSS, mais le bénéfice marginal ne justifie pas la fragilité opératoire (chaque mise à jour Material casserait le hash). Décision réévaluée à chaque major Angular.
+
+### Pourquoi `'wasm-unsafe-eval'` sur `script-src` ?
+
+PDF.js utilise des optimisations WebAssembly pour décompresser certains streams PDF. Sans cette directive, les PDF compressés en JBIG2/JPEG2000 ne s'ouvriraient pas. Cf. ADR 0006 (PDF.js) et ADR 0007 (lazy-loading) pour le contexte. Si vous ne scannez jamais de PDF, vous pouvez retirer cette directive en build personnalisé — l'app fonctionnera sur tous les autres formats.
 
 ## Si vous trouvez une fuite
 

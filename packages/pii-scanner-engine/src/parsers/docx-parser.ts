@@ -14,15 +14,31 @@
  *   raw text (à confirmer si retours utilisateur le demandent).
  *
  * Choix de dépendance : voir `docs/adr/0004-mammoth-pour-docx.md`.
+ *
+ * **Lazy-loading (v0.4.1)** : `mammoth` (~80 ko bundle) est chargé via
+ * `import()` dynamique au premier appel à `parse()`. Tant qu'on ne
+ * scanne pas un .docx, le module mammoth ne pèse pas dans le bundle
+ * initial. Cf. `docs/adr/0007-lazy-loading-parseurs-binaires.md`.
  */
-import { extractRawText } from "mammoth";
-
 import type { FileFormat } from "../types.js";
 import type { FileParser, ParserInput, TextChunk } from "./types.js";
+
+/**
+ * Module mammoth chargé paresseusement. La promesse est mise en cache
+ * pour qu'un second `parse()` réutilise la même instance.
+ */
+let mammothModulePromise: Promise<typeof import("mammoth")> | null = null;
+function loadMammothModule(): Promise<typeof import("mammoth")> {
+  if (!mammothModulePromise) {
+    mammothModulePromise = import("mammoth");
+  }
+  return mammothModulePromise;
+}
 
 export const docxParser: FileParser = {
   format: "docx",
   async *parse(input: ParserInput): AsyncIterable<TextChunk> {
+    const { extractRawText } = await loadMammothModule();
     const buf = await input.arrayBuffer();
     // **Bridge Node ↔ navigateur** : mammoth accepte `{ arrayBuffer }`
     // côté navigateur et `{ buffer }` côté Node, mais pas l'inverse —
@@ -59,3 +75,14 @@ export const docxParser: FileParser = {
 
 /** Liste blanche des formats traités par ce parseur. */
 export const DOCX_PARSER_FORMATS: ReadonlyArray<FileFormat> = ["docx"];
+
+/**
+ * Pré-chauffe le module mammoth sans déclencher de scan. Utile si l'UI
+ * veut charger le bundle en arrière-plan plutôt que d'attendre le
+ * premier .docx déposé.
+ *
+ * @returns Une promesse résolue quand le module est en cache.
+ */
+export function preloadDocxParser(): Promise<void> {
+  return loadMammothModule().then(() => undefined);
+}

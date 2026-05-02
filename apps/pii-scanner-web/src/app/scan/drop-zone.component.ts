@@ -50,21 +50,28 @@ export { ACCEPTED_EXTENSIONS, DEFAULT_MAX_TOTAL_BYTES, validateFiles };
   imports: [CommonModule, MatButtonModule, MatCardModule, MatIconModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+    <!--
+      WCAG 2.1 — la drop-zone n'est PAS un contrôle interactif au sens
+      sémantique (sinon "nested-interactive" échouerait avec le bouton
+      enfant). Elle est une section régionale, et l'interaction clavier
+      est concentrée sur le bouton "choisissez un fichier". Le drag&drop
+      reste fonctionnel sur toute la zone (handlers HTML5). Les
+      utilisateurs souris peuvent cliquer n'importe où dans la zone
+      pour ouvrir le picker (UX répandue), mais cette cible "surface"
+      n'est pas exposée comme un bouton aux AT.
+    -->
     <mat-card
       appearance="outlined"
       class="drop"
       [class.is-hover]="isHover()"
-      role="button"
-      tabindex="0"
+      role="region"
       [attr.aria-label]="
-        'Déposer des fichiers à scanner. Formats acceptés : ' + acceptedLabel
+        'Zone de dépôt des fichiers. Formats acceptés : ' + acceptedLabel
       "
       (dragover)="onDragOver($event)"
       (dragleave)="onDragLeave($event)"
       (drop)="onDrop($event)"
-      (click)="openPicker()"
-      (keydown.enter)="openPicker()"
-      (keydown.space)="onSpace()"
+      (click)="onZoneClick($event)"
     >
       <mat-card-content class="content">
         <mat-icon aria-hidden="true" class="icon">cloud_upload</mat-icon>
@@ -72,18 +79,20 @@ export { ACCEPTED_EXTENSIONS, DEFAULT_MAX_TOTAL_BYTES, validateFiles };
         <p class="muted">
           ou
           <button
+            #pickerBtn
             mat-stroked-button
             color="primary"
             type="button"
+            aria-describedby="psw-drop-hint psw-drop-promise"
             (click)="openPicker(); $event.stopPropagation()"
           >
             choisissez un fichier
           </button>
         </p>
-        <p class="hint muted">
+        <p id="psw-drop-hint" class="hint muted">
           Formats : {{ acceptedLabel }}. Limite : {{ maxLabel }}.
         </p>
-        <p class="hint muted">
+        <p id="psw-drop-promise" class="hint muted">
           Aucun fichier n'est envoyé. Tout est traité dans votre navigateur.
         </p>
       </mat-card-content>
@@ -212,11 +221,19 @@ export class DropZoneComponent {
   }
 
   /**
-   * `(keydown.space)` retire l'évènement par défaut (scroll de la page) et
-   * délègue l'ouverture du picker. Pas de paramètre car Angular passe un
-   * `Event` quand le binding ne demande pas explicitement le typed event.
+   * Click sur la surface (mat-card) — ouvre le picker uniquement si le
+   * click n'origine pas du bouton enfant (qui a son propre handler avec
+   * `stopPropagation`). C'est une commodité souris : les utilisateurs
+   * clavier passent par le bouton « choisissez un fichier » qui est la
+   * seule cible interactive sémantique de la zone.
    */
-  protected onSpace(): void {
+  protected onZoneClick(ev: Event): void {
+    const target = ev.target as HTMLElement | null;
+    // Si le click vient du bouton, son handler (avec stopPropagation)
+    // a déjà été appelé — sécurité supplémentaire ici.
+    if (target?.closest("button")) {
+      return;
+    }
     this.openPicker();
   }
 

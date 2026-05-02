@@ -8,13 +8,35 @@
 
     <!--
       Content Security Policy stricte — promesse souveraineté du projet.
-      `connect-src 'none'` interdit toute requête réseau au runtime
-      (fetch, XMLHttpRequest, WebSocket, EventSource, beacon).
+      Politique resserrée en v0.4.1 (S4.1 « durcissement plate-forme ») :
+      - `default-src 'none'` : verrou principal, force chaque directive à
+        être déclarée explicitement plutôt que d'hériter d'un défaut large.
+      - `connect-src 'none'` : interdit toute requête réseau au runtime
+        (fetch, XMLHttpRequest, WebSocket, EventSource, beacon, fetch-event).
+      - `script-src 'self' 'wasm-unsafe-eval'` : scripts servis par
+        l'origine du SPA + autorisation WebAssembly (PDF.js l'utilise pour
+        ses optimisations). Cf. ADR 0006 + 0007.
+      - `style-src 'self' 'unsafe-inline'` : Angular Material injecte des
+        styles inline sur les composants (mat-ripple, mat-overlay). Le
+        compromis est documenté ; pas d'autres vecteurs (pas de scripts inline).
+      - `img-src 'self' data:` : icônes Material en data: SVG inline.
+      - `font-src 'self' data:` : police Roboto packagée (data: pour les
+        glyphes encodés en base64 par Material).
+      - `worker-src 'self' blob:` : Web Worker du pool de scan
+        (bundler Angular peut servir le worker via un blob: URL).
+      - `object-src 'none'` + `media-src 'none'` + `manifest-src 'none'`
+        + `frame-src 'none'` : on n'embarque ni iframe, ni audio/vidéo,
+        ni manifest PWA, ni objet plug-in.
+      - `base-uri 'none'` + `form-action 'none'` + `frame-ancestors 'none'` :
+        l'app n'a pas de <base>, pas de <form action>, et ne se laisse
+        pas iframer.
+
       Toute exception future est une décision documentée (cadrage § 12).
+      Cf. `docs/comment-verifier-souverainete.md` (étape DevTools dédiée).
     -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; connect-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; worker-src 'self' blob:; child-src 'self' blob:; frame-ancestors 'none'; form-action 'none'; base-uri 'self'"
+      content="default-src 'none'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'none'; object-src 'none'; media-src 'none'; manifest-src 'none'; frame-src 'none'; child-src 'self' blob:; frame-ancestors 'none'; form-action 'none'; base-uri 'none'"
     />
     <meta name="referrer" content="no-referrer" />
     <meta name="robots" content="index,follow" />

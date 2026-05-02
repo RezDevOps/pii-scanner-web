@@ -15,11 +15,29 @@
  * contient qu'une formule sans valeur cachée, on ignore.
  *
  * Choix de dépendance : voir `docs/adr/0005-sheetjs-pour-xlsx.md`.
+ *
+ * **Lazy-loading (v0.4.1)** : `xlsx` (~250 ko bundle) est chargé via
+ * `import()` dynamique au premier appel à `parse()`. Tant qu'on ne
+ * scanne pas un .xlsx/.xls, le module SheetJS ne pèse pas dans le
+ * bundle initial de l'app. Cf. `docs/adr/0007-lazy-loading-parseurs-binaires.md`.
  */
-import { read, utils, type CellObject, type WorkSheet } from "xlsx";
+import type { CellObject, WorkSheet } from "xlsx";
 
 import type { FileFormat } from "../types.js";
 import type { FileParser, ParserInput, TextChunk } from "./types.js";
+
+/**
+ * Module SheetJS chargé paresseusement. La promesse est mise en cache
+ * pour qu'un second `parse()` réutilise la même instance — un seul
+ * `import()` par durée de vie du module.
+ */
+let xlsxModulePromise: Promise<typeof import("xlsx")> | null = null;
+function loadXlsxModule(): Promise<typeof import("xlsx")> {
+  if (!xlsxModulePromise) {
+    xlsxModulePromise = import("xlsx");
+  }
+  return xlsxModulePromise;
+}
 
 /**
  * Crée un parseur SheetJS pour `.xlsx` ou `.xls`. Le format de sortie
@@ -29,6 +47,7 @@ function createXlsxParser(format: "xlsx" | "xls"): FileParser {
   return {
     format,
     async *parse(input: ParserInput): AsyncIterable<TextChunk> {
+      const { read, utils } = await loadXlsxModule();
       const buf = await input.arrayBuffer();
       // `type: "array"` accepte un `Uint8Array` ou un `ArrayBuffer` —
       // on passe l'`ArrayBuffer` directement.
@@ -46,7 +65,7 @@ function createXlsxParser(format: "xlsx" | "xls"): FileParser {
         if (!ws) {
           continue;
         }
-        yield* parseSheet(sheetName, ws);
+        yield* parseSheet(sheetName, ws, utils);
       }
     },
   };
@@ -55,6 +74,7 @@ function createXlsxParser(format: "xlsx" | "xls"): FileParser {
 async function* parseSheet(
   sheetName: string,
   ws: WorkSheet,
+  utils: typeof import("xlsx").utils,
 ): AsyncIterable<TextChunk> {
   const ref = ws["!ref"];
   if (typeof ref !== "string" || ref.length === 0) {
@@ -118,3 +138,14 @@ export const xlsParser: FileParser = createXlsxParser("xls");
 export const XLSX_PARSER_FORMATS: ReadonlyArray<FileFormat> = ["xlsx", "xls"];
 
 export const XLSX_PARSERS: ReadonlyArray<FileParser> = [xlsxParser, xlsParser];
+
+/**
+ * Pré-chauffe le module SheetJS sans déclencher de scan. Utile si
+ * l'UI veut charger le bundle en arrière-plan (ex. au survol d'un
+ * bouton) plutôt que d'attendre la première dropzone .xlsx.
+ *
+ * @returns Une promesse résolue quand le module est en cache.
+ */
+export function preloadXlsxParser(): Promise<void> {
+  return loadXlsxModule().then(() => undefined);
+}

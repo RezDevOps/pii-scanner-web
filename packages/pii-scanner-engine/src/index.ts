@@ -64,9 +64,14 @@ export type {
   WorkerPoolRunnerOptions,
 } from "./runner/index.js";
 
-// --- Parseurs (v0.2.0 + v0.2.1) ---
+// --- Parseurs (v0.2.0 + v0.2.1 + v0.4.1) ---
 // Exposés individuellement pour tests + variantes (CLI). Une UI
 // applicative ne devrait normalement consommer que `runScan`.
+//
+// Depuis v0.4.1, les 3 dépendances lourdes (xlsx, mammoth, pdfjs-dist)
+// sont chargées en `import()` dynamique au sein de leur parseur. Les
+// fonctions `preload*Parser()` permettent à l'UI de pré-chauffer un
+// chunk en arrière-plan (au survol d'un bouton, par exemple).
 export {
   csvParser,
   docxParser,
@@ -79,6 +84,9 @@ export {
   xlsParser,
   xlsxParser,
   getParserForFormat,
+  preloadXlsxParser,
+  preloadDocxParser,
+  preloadPdfParser,
 } from "./parsers/index.js";
 export type { FileParser, ParserInput, TextChunk } from "./parsers/index.js";
 

@@ -8,7 +8,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
-**v0.4.0 — sprint S4 (détecteurs étendus + exports).** Les **12 détecteurs du périmètre v1.0 sont livrés** (5 cœur de S1 + BIC, TVA intracom FR, carte bancaire, code postal FR, plaque FR, date de naissance, adresse postale FR). Le rapport est désormais **téléchargeable en JSON, Markdown ou HTML autonome** (single-file, sans dépendance, CSP stricte, valeurs masquées par défaut). **Rien ne sort du navigateur** — vérifiable en direct via DevTools (`docs/comment-verifier-souverainete.md`).
+**v0.4.1 — sprint S4.1 (durcissement plate-forme).** Release de qualité, aucune nouvelle feature fonctionnelle : **CSP stricte resserrée** (`default-src 'none'`), **audit dépendances** complet avec correctifs prioritaires (4 CVE happy-dom corrigées), **audit accessibilité WCAG 2.1 AA** (axe-core automatisé en CI + audit manuel VoiceOver/NVDA documenté), **lazy-loading des 3 parseurs binaires** (`xlsx`/`pdfjs-dist`/`mammoth`) pour passer le bundle initial sous le Mo. Voir `docs/audit-dependances-v0.4.1.md`, `docs/accessibilite.md`, et [ADR 0007](docs/adr/0007-lazy-loading-parseurs-binaires.md).
 
 | Jalon                                                                      | Statut   | Sortie                |
 | -------------------------------------------------------------------------- | -------- | --------------------- |
@@ -18,7 +18,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 | S2.1 — Parseurs binaires (XLSX / XLS / PDF / DOCX / HTML)                  | ✅ livré | tag `v0.2.1`          |
 | S3 — UI Angular (drop zone, rapport interactif, branchement pool)          | ✅ livré | tag `v0.3.0`          |
 | S4 — 7 détecteurs étendus + exports JSON / Markdown / HTML autonome        | ✅ livré | tag `v0.4.0`          |
-| S4.1 — CSP stricte + audit deps + WCAG AA + lazy-loading parseurs binaires | à venir  | tag `v0.4.1`          |
+| S4.1 — CSP stricte + audit deps + WCAG AA + lazy-loading parseurs binaires | ✅ livré | tag `v0.4.1`          |
 | S5 — Pipeline release, démo en ligne, doc finale                           | à venir  | **tag `v1.0.0`**      |
 
 ## Promesse
@@ -62,7 +62,7 @@ pnpm install --frozen-lockfile
 pnpm format:check  # Prettier (CI bloquant)
 pnpm build         # build des trois couches (ordre : packages avant app)
 pnpm lint          # tsc --noEmit sur les deux tsconfig
-pnpm test          # tests Vitest (env. 280 verts au total : ~140 détecteurs + ~115 engine + ~30 app)
+pnpm test          # tests Vitest (~330 verts : 175 détecteurs + 124 engine + ~31 app dont 4 axe-core a11y)
 pnpm dev           # SPA Angular en watch sur http://localhost:4200
 ```
 

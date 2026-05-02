@@ -85,8 +85,9 @@ import { buildDetectorLabels } from "./scan/detector-labels";
             type="button"
             (click)="onReset()"
             [disabled]="isScanningSig()"
+            aria-label="Réinitialiser la file et le rapport"
           >
-            <mat-icon>refresh</mat-icon>
+            <mat-icon aria-hidden="true">refresh</mat-icon>
             Réinitialiser
           </button>
         </div>
@@ -104,10 +105,15 @@ import { buildDetectorLabels } from "./scan/detector-labels";
       ></psw-report>
     </main>
 
-    <footer class="footer">
+    <footer class="footer" role="contentinfo">
       <p class="muted">
         Code source :
-        <a href="https://github.com/RezDevOps/pii-scanner-web" rel="noopener">
+        <a
+          href="https://github.com/RezDevOps/pii-scanner-web"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Code source du projet sur GitHub (s'ouvre dans un nouvel onglet)"
+        >
           github.com/RezDevOps/pii-scanner-web
         </a>
         · Licence AGPL-3.0 · v{{ engineVersion }}

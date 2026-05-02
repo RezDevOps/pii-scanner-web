@@ -127,13 +127,16 @@ interface SummaryEntry {
           </header>
 
           <!-- Récap par catégorie -->
-          <section class="summary" aria-label="Récapitulatif par catégorie">
-            <h3 class="h3">Par catégorie</h3>
-            <mat-chip-set>
+          <section class="summary" aria-labelledby="psw-summary-title">
+            <h3 class="h3" id="psw-summary-title">Par catégorie</h3>
+            <mat-chip-set aria-label="Compteurs de findings par catégorie">
               @for (entry of summary(); track entry.detector) {
                 <mat-chip
                   [attr.data-detector]="entry.detector"
                   [highlighted]="entry.count > 0"
+                  [attr.aria-label]="
+                    entry.label + ' : ' + entry.count + ' finding(s)'
+                  "
                 >
                   {{ entry.label }} : {{ entry.count }}
                 </mat-chip>
@@ -221,7 +224,12 @@ interface SummaryEntry {
                   <span
                     class="psw-mask"
                     tabindex="0"
-                    [attr.aria-label]="'Valeur masquée. Survoler ou focus pour révéler.'"
+                    role="button"
+                    [attr.aria-label]="
+                      'Valeur masquée pour ' +
+                      detectorLabel(row.finding.detector) +
+                      '. Survoler ou activer pour révéler.'
+                    "
                     >{{ row.finding.value }}</span
                   >
                 </td>

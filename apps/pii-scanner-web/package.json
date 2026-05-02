@@ -1,6 +1,6 @@
 {
   "name": "pii-scanner-web",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": true,
   "description": "Application Angular du scanner PII local-only — UI uniquement, consomme @rezdevops/pii-scanner-engine via une façade.",
   "license": "AGPL-3.0-only",
@@ -37,6 +37,7 @@
     "@angular-devkit/build-angular": "^20.0.0",
     "@angular/cli": "^20.0.0",
     "@angular/compiler-cli": "^20.0.0",
-    "happy-dom": "^15.11.7"
+    "axe-core": "^4.10.0",
+    "happy-dom": "^20.0.0"
   }
 }

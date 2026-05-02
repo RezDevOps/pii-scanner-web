@@ -22,13 +22,13 @@
  * Note technique : on importe la build `legacy/build/pdf.mjs` qui
  * fonctionne aussi bien en navigateur qu'en Node, sans dépendre de
  * `canvas` ni d'un Worker tant qu'on n'invoque pas le rendu.
+ *
+ * **Lazy-loading (v0.4.1)** : `pdfjs-dist` (~600 ko bundle, le plus
+ * gros parseur binaire) est chargé via `import()` dynamique au premier
+ * appel à `parse()`. Tant qu'on ne scanne pas un .pdf, le module
+ * PDF.js ne pèse pas dans le bundle initial. Cf.
+ * `docs/adr/0007-lazy-loading-parseurs-binaires.md`.
  */
-import {
-  GlobalWorkerOptions,
-  getDocument,
-  // eslint-disable-next-line import/no-unresolved -- sous-chemin du package
-} from "pdfjs-dist/legacy/build/pdf.mjs";
-
 import type { FileFormat } from "../types.js";
 import type { FileParser, ParserInput, TextChunk } from "./types.js";
 
@@ -43,23 +43,43 @@ interface PdfTextItem {
   readonly hasEOL?: boolean;
 }
 
-// On désactive le worker explicitement : pour `getTextContent`, le
-// fallback monothread est suffisant (chez l'utilisateur final, l'app
-// Angular peut activer un worker dédié si profilage le justifie).
-// En spécifiant une chaîne vide, PDF.js bascule sur le mode synchrone
-// dans le thread courant.
-if (typeof GlobalWorkerOptions !== "undefined") {
-  // `workerSrc` est typé `string` par PDF.js ; on assigne une chaîne
-  // vide pour signifier « pas de worker externe ». Idempotent : si
-  // l'app caller a déjà configuré une URL, on ne l'écrase pas.
-  if (!GlobalWorkerOptions.workerSrc) {
-    GlobalWorkerOptions.workerSrc = "";
+/**
+ * Module PDF.js chargé paresseusement. La promesse est mise en cache
+ * pour qu'un second `parse()` réutilise la même instance — important
+ * car PDF.js initialise des structures internes au premier import.
+ */
+let pdfjsModulePromise: Promise<
+  typeof import("pdfjs-dist/legacy/build/pdf.mjs")
+> | null = null;
+function loadPdfjsModule(): Promise<
+  typeof import("pdfjs-dist/legacy/build/pdf.mjs")
+> {
+  if (!pdfjsModulePromise) {
+    // eslint-disable-next-line import/no-unresolved -- sous-chemin du package
+    pdfjsModulePromise = import("pdfjs-dist/legacy/build/pdf.mjs").then(
+      (mod) => {
+        // On désactive le worker explicitement : pour `getTextContent`,
+        // le fallback monothread est suffisant. En spécifiant une
+        // chaîne vide, PDF.js bascule sur le mode synchrone dans le
+        // thread courant. Idempotent : si l'app caller a déjà
+        // configuré une URL, on ne l'écrase pas.
+        if (
+          typeof mod.GlobalWorkerOptions !== "undefined" &&
+          !mod.GlobalWorkerOptions.workerSrc
+        ) {
+          mod.GlobalWorkerOptions.workerSrc = "";
+        }
+        return mod;
+      },
+    );
   }
+  return pdfjsModulePromise;
 }
 
 export const pdfParser: FileParser = {
   format: "pdf",
   async *parse(input: ParserInput): AsyncIterable<TextChunk> {
+    const { getDocument } = await loadPdfjsModule();
     const buf = await input.arrayBuffer();
     const data = new Uint8Array(buf);
     const loadingTask = getDocument({
@@ -106,6 +126,18 @@ export const pdfParser: FileParser = {
 
 /** Liste blanche des formats traités par ce parseur. */
 export const PDF_PARSER_FORMATS: ReadonlyArray<FileFormat> = ["pdf"];
+
+/**
+ * Pré-chauffe le module PDF.js sans déclencher de scan. Utile si l'UI
+ * veut charger ce gros bundle en arrière-plan plutôt que d'attendre
+ * le premier .pdf déposé (utilisateur le verra au survol d'un bouton
+ * « importer un PDF »).
+ *
+ * @returns Une promesse résolue quand le module est en cache.
+ */
+export function preloadPdfParser(): Promise<void> {
+  return loadPdfjsModule().then(() => undefined);
+}
 
 /**
  * Rejoint les `TextItem` d'une page en chaîne lisible.

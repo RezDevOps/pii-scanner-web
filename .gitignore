@@ -47,4 +47,5 @@ sbom*.json
 
 # Brouillons et fichiers tmp générés par tooling
 COMMIT_MSG*.txt
+TAG_MSG*.txt
 _tmp_*

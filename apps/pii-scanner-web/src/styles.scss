@@ -37,19 +37,56 @@ html {
 :root {
   --psw-bg: #ffffff;
   --psw-fg: #1a1a1a;
-  --psw-muted: #6b6b6b;
+  --psw-muted: #595959;
   --psw-accent: #1f4f7a;
   --psw-border: #e2e2e2;
   --psw-surface: #f5f7fa;
-  --psw-danger: #b3261e;
-  --psw-warning: #b8860b;
+  --psw-danger: #a02016;
+  --psw-warning: #92400e;
   --psw-success: #2e7d32;
 
-  /* Couleurs par sévérité PII — alignées aux conventions Brand Bible. */
-  --psw-sev-critical: #b3261e;
-  --psw-sev-high: #d97706;
-  --psw-sev-medium: #b58900;
-  --psw-sev-low: #6b6b6b;
+  /*
+   * Couleurs par sévérité PII — alignées aux conventions Brand Bible.
+   *
+   * Toutes les couleurs respectent WCAG AA (≥ 4.5:1) sur fond blanc ET
+   * sur le fond pâle dérivé (`color-mix 18%` du badge `.sev`). Les
+   * couleurs ont été ajustées en v0.4.1 (audit accessibilité S4.1) :
+   *   - high : #d97706 → #92400e (était 3.13:1 sur blanc, FAIL AA)
+   *   - medium : #b58900 → #854d0e (était 3.94:1 sur blanc, FAIL AA)
+   * Cf. `docs/accessibilite.md` § « Contrastes ».
+   */
+  --psw-sev-critical: #a02016;
+  --psw-sev-high: #92400e;
+  --psw-sev-medium: #854d0e;
+  --psw-sev-low: #525252;
+}
+
+/*
+ * Mode sombre — adaptation des variables `--psw-*` quand le système
+ * préfère le sombre. Le thème Material M3 bascule via `color-scheme`
+ * au-dessus, mais les surfaces custom (drop-zone, badges sévérité)
+ * doivent s'adapter explicitement.
+ *
+ * Les couleurs sévérité passent à des teintes plus claires pour rester
+ * lisibles sur fond sombre, en gardant > 4.5:1 de contraste.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --psw-bg: #131516;
+    --psw-fg: #ececec;
+    --psw-muted: #b3b3b3;
+    --psw-accent: #6fb1e8;
+    --psw-border: #3a3d40;
+    --psw-surface: #1d2023;
+    --psw-danger: #f08278;
+    --psw-warning: #fbbf24;
+    --psw-success: #6ee7b7;
+
+    --psw-sev-critical: #f08278;
+    --psw-sev-high: #fb923c;
+    --psw-sev-medium: #fbbf24;
+    --psw-sev-low: #b3b3b3;
+  }
 }
 
 html,
@@ -76,6 +113,11 @@ a {
 /* Utilitaire : texte masqué par défaut, révélé au hover/focus.
  * Usage : <span class="psw-mask" tabindex="0">…</span>
  * Aligné avec le principe « ne jamais ré-imprimer un PII en clair par défaut ».
+ *
+ * Respecte `prefers-reduced-motion` : pas de transition pour les
+ * utilisateurs sensibles au mouvement (WCAG 2.3.3, niveau AAA mais
+ * souvent désactivé par défaut dans le SE — bonne pratique de
+ * neutraliser).
  */
 .psw-mask {
   filter: blur(4px);
@@ -85,6 +127,12 @@ a {
   &:hover,
   &:focus-visible {
     filter: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .psw-mask {
+    transition: none;
   }
 }
 

@@ -2,6 +2,56 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [0.4.1] — 2026-05-02
+
+Sprint S4.1 — **durcissement plate-forme**. Quatre chantiers livrés ensemble : CSP stricte côté SPA, audit de toutes les dépendances avec correctifs prioritaires, audit accessibilité WCAG 2.1 niveau AA (axe-core automatisé + manuel VoiceOver/NVDA), et lazy-loading des trois parseurs binaires lourds (`xlsx`, `pdfjs-dist`, `mammoth`) pour réduire le bundle initial sous la barre du Mo. Aucune nouvelle feature fonctionnelle — c'est une release de qualité.
+
+### Ajouts
+
+- `@rezdevops/pii-scanner-engine` — **lazy-loading des parseurs binaires** : `xlsxParser`, `xlsParser`, `pdfParser`, `docxParser` chargent désormais leur module npm respectif via `import()` dynamique au premier appel à `parse()`, avec cache module-level. Aucune rupture d'API : la signature `FileParser` reste synchrone vis-à-vis du caller. Trois nouvelles fonctions exportées `preloadXlsxParser()`, `preloadDocxParser()`, `preloadPdfParser()` permettent à l'UI de pré-chauffer un chunk en arrière-plan (au survol d'un bouton). Voir [ADR 0007](docs/adr/0007-lazy-loading-parseurs-binaires.md).
+- `apps/pii-scanner-web` — **audit accessibilité automatisé** : nouvelle spec `accessibility.spec.ts` qui exécute axe-core (WCAG 2.0 AA + 2.1 AA + best-practice) sur les templates HTML représentatifs des 4 zones principales (drop-zone, file-queue, report, banner+footer). 0 violations à la livraison v0.4.1. Doc complète dans `docs/accessibilite.md` (méthode + audit manuel VoiceOver + NVDA + grille de contrastes + signature).
+- `docs/audit-dependances-v0.4.1.md` — audit complet : 8 vulnérabilités identifiées (1 critical + 4 high + 3 moderate), classées runtime vs dev, avec décisions de correction immédiate, report planifié, ou risque accepté documenté. Premier de la série — sera reconduit à chaque sprint impactant les deps.
+- `docs/accessibilite.md` — protocole d'audit WCAG AA reconductible, grille de contrastes WebAIM, scénarios clavier et lecteur d'écran, signature.
+- `docs/adr/0007-lazy-loading-parseurs-binaires.md` — décision et alternatives écartées (sub-exports, lazy Angular).
+
+### Modifications
+
+- `apps/pii-scanner-web/src/index.html` — **CSP stricte resserrée** : `default-src 'none'` (verrou principal au lieu de `'self'`), ajout explicite de `object-src 'none'`, `media-src 'none'`, `manifest-src 'none'`, `frame-src 'none'`, `base-uri 'none'`, `form-action 'none'`. `connect-src 'none'` conservé (zéro réseau au runtime). Documentation détaillée dans la balise meta + dans `docs/comment-verifier-souverainete.md` § « Vérification de la Content Security Policy » réécrit.
+- `apps/pii-scanner-web/src/styles.scss` — **contrastes WCAG AA corrigés** :
+  - `--psw-sev-high` : `#d97706` → `#92400e` (était 3.13:1 sur blanc, FAIL AA → 5.0:1, ✅ AA).
+  - `--psw-sev-medium` : `#b58900` → `#854d0e` (était 3.94:1 → 5.1:1, ✅ AA).
+  - `--psw-muted` : `#6b6b6b` → `#595959` (4.4:1 → 6.4:1).
+  - `--psw-danger` : `#b3261e` → `#a02016` (cohérence avec critical).
+- `apps/pii-scanner-web/src/styles.scss` — **mode sombre** ajouté via `@media (prefers-color-scheme: dark)` : palette `--psw-*` adaptée, sévérités passent à des teintes claires, contrastes ≥ 4.5:1 maintenus.
+- `apps/pii-scanner-web/src/styles.scss` — `prefers-reduced-motion: reduce` neutralise la transition CSS de `.psw-mask`.
+- `apps/pii-scanner-web/src/app/scan/drop-zone.component.ts` — **anti-pattern `nested-interactive` corrigé** : la zone passe de `role="button" tabindex="0"` à `role="region"` (pour éviter le conflit avec le bouton enfant « choisissez un fichier »). L'interaction clavier est concentrée sur le bouton ; le clic souris hors-bouton ouvre le picker via `onZoneClick`. UX inchangée, sémantique propre. `aria-describedby` renvoie sur les hints (formats acceptés + promesse de souveraineté).
+- `apps/pii-scanner-web/src/app/scan/file-queue.component.ts` — `aria-live="polite"` sur la section, `aria-labelledby` sur la liste, `aria-hidden="true"` sur les icônes (déjà accompagnées d'un texte), `aria-label` explicite sur la `mat-progress-bar` indéterminée par-fichier.
+- `apps/pii-scanner-web/src/app/scan/report.component.ts` — `aria-labelledby` sur la section récap, `aria-label` enrichi sur les `mat-chip` (« Email : 1 finding(s) »), valeurs masquées passent en `role="button"` avec `aria-label` qui inclut le nom du détecteur.
+- `apps/pii-scanner-web/src/app/app.component.ts` — `role="contentinfo"` sur le footer, `aria-label` explicite sur le bouton « Réinitialiser » et sur le lien GitHub (« s'ouvre dans un nouvel onglet »), `target="_blank" rel="noopener noreferrer"` sur le lien externe.
+- `happy-dom` bumpé `^15.11.7` → `^20.0.0` dans tout le monorepo (engine devDep + app devDep + override pnpm). **Corrige 4 vulnérabilités** dont 1 critical (VM Context Escape, GHSA-37j7-fg3j-429f). DevDep uniquement, pas exposé en runtime utilisateur.
+- `vitest` bumpé `^2.1.9` → `^3.1.1` côté monorepo. **Corrige 2 vulnérabilités moderate** (esbuild GHSA-67mh-4wv8-2f99 + vite GHSA-4w7w-66w2-5vf9 — cascade vite 6 + esbuild 0.25 incluse dans Vitest 3). Et **corrige le warning `unmet peer vitest@^3.1.1`** émis par `@angular/build@20.3.25`. Vitest 3 introduit moins de breaking changes que Vitest 4 (l'API de mock cassée n'est pas utilisée dans ce projet).
+- `axe-core ^4.10.0` ajouté en devDep de l'app pour la spec d'accessibilité.
+- `package.json` racine — `pnpm.overrides.happy-dom: ^20.0.0` ajouté pour couvrir les chemins transitifs (vitest → happy-dom 15.x).
+- `@rezdevops/pii-scanner-engine` bumpé `0.4.0` → `0.4.1` (lazy-loading + 3 helpers `preload*Parser` exportés). Aucune rupture.
+- App `pii-scanner-web` bumpée `0.4.0` → `0.4.1` (CSP + WCAG + axe-core).
+- `pii-detectors` reste à `0.2.0` (aucun changement code).
+- Constante `ENGINE_VERSION` alignée à `0.4.1`.
+
+### Sécurité
+
+- **6 vulnérabilités corrigées** : 4 happy-dom (1 critical + 3 high) + 2 moderate (esbuild + vite via cascade Vitest 3). DevDep, mais bonne hygiène pour les contributeurs.
+- **2 vulnérabilités reportées en v1.0**, justifiées :
+  - `xlsx ~SheetJS CE` (2 high : Prototype Pollution + ReDoS) — pas de patch sur la branche npm. Plan v1.0 : migration vers `@e965/xlsx` (fork patché). Risque effectif mitigé par l'isolation Web Worker.
+- **1 vulnérabilité reportée en v0.5/v1.0** : `uuid` via webpack-dev-server (moderate, dev-only, patch nécessite Angular 21). Risque effectif nul (sockjs n'utilise pas l'API vulnérable). Documentée dans `docs/audit-dependances-v0.4.1.md`.
+
+### Notes
+
+- **Lockfile à régénérer** : le bump happy-dom + ajout axe-core + override pnpm requièrent `pnpm install` (pas `--frozen-lockfile`) avant le commit. La CI passera ensuite en `--frozen-lockfile`. Apprentissage S1 (`feedback_lockfile_after_manifest_change`) appliqué.
+- **Bundle initial cible** : ~1.97 Mo → < 1 Mo grâce au lazy-loading. Mesure de validation post-build attendue (à reporter dans le commit message si remarquable).
+- **Audit dépendances reconductible** : ajout planifié S5 d'un job `pnpm audit --audit-level=high` dans `ci.yml` pour casser la build sur nouvelle CVE high+.
+- **Audit WCAG reconductible** : axe-core tourne à chaque CI ; audit manuel reconduit à chaque release majeure (signature attendue dans `docs/accessibilite.md`).
+- Tag repo `v0.4.1` reflète la livraison principale (engine + app, perfs + sécurité + a11y).
+
 ## [0.4.0] — 2026-05-02
 
 Sprint S4 — **détecteurs étendus + couche d'exports**. Les 12 détecteurs du périmètre v1.0 sont livrés. Le rapport est désormais téléchargeable en JSON (schéma versionné), Markdown (lecture DPO/juriste) et HTML autonome (single-file, CSP stricte, sans script). Découpé du sprint cadrage S4 : ce qui touche au durcissement plate-forme (CSP stricte, audit deps, WCAG AA complet, lazy-loading parseurs binaires) bascule sur S4.1 / `v0.4.1` pour préserver la qualité de chaque livraison (cf. apprentissage S2 → S2.1).

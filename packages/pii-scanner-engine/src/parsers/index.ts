@@ -16,10 +16,18 @@ import { xlsParser, xlsxParser } from "./xlsx-parser.js";
 
 export type { FileParser, ParserInput, TextChunk } from "./types.js";
 export { csvParser, tsvParser, CSV_PARSER_FORMATS } from "./csv-parser.js";
-export { docxParser, DOCX_PARSER_FORMATS } from "./docx-parser.js";
+export {
+  docxParser,
+  DOCX_PARSER_FORMATS,
+  preloadDocxParser,
+} from "./docx-parser.js";
 export { htmlParser, HTML_PARSER_FORMATS } from "./html-parser.js";
 export { jsonParser } from "./json-parser.js";
-export { pdfParser, PDF_PARSER_FORMATS } from "./pdf-parser.js";
+export {
+  pdfParser,
+  PDF_PARSER_FORMATS,
+  preloadPdfParser,
+} from "./pdf-parser.js";
 export {
   mdParser,
   txtParser,
@@ -31,11 +39,17 @@ export {
   xlsxParser,
   XLSX_PARSERS,
   XLSX_PARSER_FORMATS,
+  preloadXlsxParser,
 } from "./xlsx-parser.js";
 
 /**
  * Index format → parseur. Tous les `FileFormat` exposés par l'engine
  * y figurent depuis `v0.2.1` (parseurs binaires activés).
+ *
+ * Depuis `v0.4.1`, les 3 parseurs binaires (xlsx, xls, pdf, docx) ont
+ * un cœur lazy-loadé : leur module npm n'est chargé qu'au premier
+ * appel à `parse()`, ce qui réduit le bundle initial de l'app
+ * d'environ 1 Mo (cf. `docs/adr/0007-lazy-loading-parseurs-binaires.md`).
  */
 const PARSER_BY_FORMAT: Readonly<Record<FileFormat, FileParser>> = {
   csv: csvParser,

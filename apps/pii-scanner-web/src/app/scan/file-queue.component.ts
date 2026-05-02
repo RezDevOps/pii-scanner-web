@@ -24,11 +24,17 @@ import type { FileQueueEntry } from "./scan.service";
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (entries.length > 0) {
-      <section class="queue" aria-label="Fichiers en cours de scan">
+      <section
+        class="queue"
+        aria-label="Fichiers en cours de scan"
+        aria-live="polite"
+      >
         <header class="header">
-          <h3 class="title">Fichiers</h3>
-          <mat-chip-set aria-label="Compteur de fichiers">
-            <mat-chip>{{ doneCount() }}/{{ entries.length }} traités</mat-chip>
+          <h3 class="title" id="psw-queue-title">Fichiers</h3>
+          <mat-chip-set aria-label="Compteur de fichiers traités">
+            <mat-chip aria-live="polite"
+              >{{ doneCount() }}/{{ entries.length }} traités</mat-chip
+            >
           </mat-chip-set>
         </header>
 
@@ -41,25 +47,33 @@ import type { FileQueueEntry } from "./scan.service";
           "
         ></mat-progress-bar>
 
-        <ul class="list">
+        <ul class="list" aria-labelledby="psw-queue-title">
           @for (entry of entries; track entry.id) {
             <li class="entry" [attr.data-status]="entry.status">
               <div class="row">
                 <mat-icon
                   class="status-icon"
-                  [attr.aria-label]="iconLabel(entry.status)"
+                  aria-hidden="true"
+                  [attr.title]="iconLabel(entry.status)"
                   >{{ iconName(entry.status) }}</mat-icon
                 >
                 <span class="name" [title]="entry.fileName">{{
                   entry.fileName
                 }}</span>
                 <span class="size muted">{{ humanSize(entry.size) }}</span>
-                <span class="status muted">{{
-                  statusLabel(entry.status)
-                }}</span>
+                <span
+                  class="status muted"
+                  [attr.aria-label]="statusLabel(entry.status)"
+                  >{{ statusLabel(entry.status) }}</span
+                >
               </div>
               @if (entry.status === "scanning") {
-                <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+                <mat-progress-bar
+                  mode="indeterminate"
+                  [attr.aria-label]="
+                    'Analyse de ' + entry.fileName + ' en cours'
+                  "
+                ></mat-progress-bar>
               }
               @if (entry.status === "failed" && entry.errorMessage) {
                 <p class="error" role="alert">{{ entry.errorMessage }}</p>
