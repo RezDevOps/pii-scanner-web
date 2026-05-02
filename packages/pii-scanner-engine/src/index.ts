@@ -12,6 +12,11 @@
  *   `FileFormat` exposés depuis v0.1.0 sont désormais activement
  *   parsés. Voir ADRs 0004, 0005, 0006 pour le détail des choix de
  *   dépendance.
+ * - `v0.3.0` : façade Worker par défaut (`createDefaultScanWorker`,
+ *   sub-export `./worker`).
+ * - `v0.4.0` : couche d'exports (`toJsonReport`, `toMarkdownReport`,
+ *   `toHtmlReport`) + helpers `maskValue` / `MaskLevel`. Schéma JSON
+ *   versionné via `REPORT_SCHEMA_VERSION`.
  */
 
 // --- Surface S1 (héritée v0.1.0) ---
@@ -80,6 +85,21 @@ export type { FileParser, ParserInput, TextChunk } from "./parsers/index.js";
 // --- Worker API (v0.2.0) + fabrique par défaut (v0.3.0) ---
 export type { ScanWorkerApi } from "./worker/scan-worker-api.js";
 export { createDefaultScanWorker } from "./worker/create-default-worker.js";
+
+// --- Exports (v0.4.0) — sérialiseurs JSON / Markdown / HTML autonome ---
+export {
+  buildJsonReport,
+  toJsonReport,
+  toMarkdownReport,
+  toHtmlReport,
+  maskValue,
+  REPORT_SCHEMA_VERSION,
+} from "./exports/index.js";
+export type {
+  ExportOptions,
+  HtmlExportOptions,
+  MaskLevel,
+} from "./exports/index.js";
 
 // --- Version ---
 export { ENGINE_VERSION as VERSION } from "./version.js";

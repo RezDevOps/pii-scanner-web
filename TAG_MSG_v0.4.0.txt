@@ -1,0 +1,26 @@
+v0.4.0 — détecteurs étendus + exports JSON / Markdown / HTML autonome
+
+Les 12 détecteurs du périmètre v1.0 sont livrés. Le rapport est téléchargeable
+en trois formats (JSON schéma versionné, Markdown lisible DPO, HTML autonome
+single-file avec CSP stricte et zéro <script>).
+
+Détecteurs ajoutés (S4) :
+- bic              — ISO 9362, structure + code pays ISO 3166-1 alpha-2 (250 codes)
+- tva-intracom-fr  — DGFiP, validation par clé MOD 97 sur SIREN
+- card             — ISO/IEC 7812-1 Luhn + identification de marque (Visa, MC,
+                     Amex, Discover, JCB, Diners, UnionPay)
+- postal-code-fr   — La Poste / INSEE, plages 01000-95999 ∪ 97000-98999
+- license-plate-fr — SIV (haute confiance) + FNI (avec validation département)
+- date-of-birth    — calendrier grégorien strict, fenêtre [1900, 2100]
+- postal-address-fr — heuristique tête (numéro + voie) + queue (CP + ville)
+
+Exports (engine) :
+- toJsonReport      — schéma 1.0, indenté, déterministe
+- toMarkdownReport  — verdict + synthèse + détail par fichier
+- toHtmlReport      — single-file, CSS inline, anti-XSS, mode sombre auto
+
+UI Angular :
+- 3 boutons d'export dans psw-report (Material mat-stroked-button + mat-icon)
+- Logique pure extraite (export-actions.ts) → testable happy-dom
+
+Pipeline locale Node 22 : 326 tests verts (175 + 124 + 27).
