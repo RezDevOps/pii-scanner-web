@@ -1,9 +1,9 @@
 # ADR 0003 — Communication avec les Web Workers : Comlink ou postMessage natif
 
-- **Statut** : proposed (à confirmer en sprint S2)
-- **Date** : 2026-05-01
+- **Statut** : **accepted** (confirmé en sprint S2)
+- **Date** : 2026-05-01 (création), confirmé 2026-05-02 (S2)
 - **Décideurs** : Rudy Rezaire (RezDevOps)
-- **Contexte** : sprint S0 — pose initiale de la décision avant l'implémentation S2
+- **Contexte** : sprint S0 — pose initiale ; sprint S2 — confirmation après implémentation du `Runner` et du pool
 
 ## Contexte
 
@@ -31,8 +31,23 @@
 - **`postMessage` natif** — zéro dépendance, contrôle total, mais charge de plomberie significative (dispatch, corrélation requête/réponse, gestion d'erreur). Choix légitime si une politique « zéro dépendance runtime » devient prioritaire.
 - **`workerpool`** — pool managé clé-en-main mais surface API plus large que nécessaire et licence Apache 2.0 (compatible mais sans avantage net sur Comlink + pool maison).
 
-## Décision à confirmer en S2
+## Décision confirmée en S2 (2026-05-02)
 
-- Vérifier sur un prototype que la sérialisation Comlink ne devient pas un goulot d'étranglement sur des CSV de 100 Mo (cas de borne haute du cadrage § 6.3).
-- Évaluer le passage en _transferable_ (`ArrayBuffer.transfer`) pour éviter une copie sur les chunks volumineux.
-- Confirmer ou faire évoluer cet ADR en `accepted` ou `superseded`.
+L'engine S2 introduit une abstraction `Runner` (`src/runner/`) qui découple
+l'API publique (`runScan`) du moyen d'exécution. Deux implémentations livrées :
+
+- `MainThreadRunner` — exécute `scanText` sur le thread courant. Toujours
+  disponible. Sert de fallback en environnement dépourvu de `Worker`
+  (Node, contextes restreints) **et** d'implémentation par défaut en S2 où
+  l'instanciation des Workers Comlink est posée mais pas encore active dans
+  l'app Angular (S3 branche le pool).
+- `WorkerPoolRunner` — utilise Comlink pour exposer `scanText` côté worker
+  et un mini-pool dimensionné sur `navigator.hardwareConcurrency`
+  (fallback : 2). Comlink est ajouté en dépendance de
+  `@rezdevops/pii-scanner-engine`.
+
+Les vérifications restantes (charge CSV 100 Mo, transfert d'`ArrayBuffer`)
+se font naturellement en S3 quand l'app Angular sollicitera le pool sur
+des fichiers réels. La surface d'API publique de l'engine ne change pas
+si on bascule plus tard sur `postMessage` natif — l'abstraction `Runner`
+garantit la réversibilité documentée plus haut.

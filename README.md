@@ -8,16 +8,17 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
-**Pré-v0.1.0 — sprint S0 (initialisation).** Le squelette du repo est posé, les détecteurs et l'engine ne sont pas encore implémentés. Le cadrage produit, technique et licence est figé : voir `docs/cadrage.md` (lien à venir, document de référence interne) et la roadmap ci-dessous.
+**v0.2.0 — sprint S2 (engine + parseurs texte).** Façade `runScan(File[])` opérationnelle ; 5 détecteurs et 5 parseurs (CSV / TSV / TXT / MD / JSON) en place ; pool de Web Workers Comlink livré et activable depuis l'app Angular en S3. Les parseurs binaires (XLSX / PDF / DOCX / HTML) sont reportés à `v0.2.1` (cf. CHANGELOG et addendum cadrage § 9).
 
-| Jalon                                                              | Statut   | Sortie                |
-| ------------------------------------------------------------------ | -------- | --------------------- |
-| S0 — Squelette repo, README, LICENSE, ADRs, CI minimale            | en cours | premier commit public |
-| S1 — Couche détecteurs (5 cœur : email, tel FR, NIR, IBAN, SIRET)  | à venir  | tag `v0.1.0`          |
-| S2 — Couche engine (workers, parseurs CSV/XLSX/PDF/TXT/JSON)       | à venir  | tag `v0.2.0`          |
-| S3 — UI Angular (drop zone, rapport interactif)                    | à venir  | tag `v0.3.0`          |
-| S4 — Détecteurs restants, exports JSON/MD/HTML, CSP, accessibilité | à venir  | tag `v0.4.0`          |
-| S5 — Pipeline release, démo en ligne, doc finale                   | à venir  | **tag `v1.0.0`**      |
+| Jalon                                                                      | Statut   | Sortie                |
+| -------------------------------------------------------------------------- | -------- | --------------------- |
+| S0 — Squelette repo, README, LICENSE, ADRs, CI minimale                    | ✅ livré | premier commit public |
+| S1 — Couche détecteurs (5 cœur : email, tel FR, NIR, IBAN, SIRET)          | ✅ livré | tag `v0.1.0`          |
+| S2 — Engine + parseurs texte (CSV/TSV/TXT/MD/JSON) + pool Workers + façade | ✅ livré | tag `v0.2.0`          |
+| S2.1 — Parseurs binaires (XLSX/PDF/DOCX/HTML)                              | à venir  | tag `v0.2.1`          |
+| S3 — UI Angular (drop zone, rapport interactif, branchement pool)          | à venir  | tag `v0.3.0`          |
+| S4 — Détecteurs restants, exports JSON/MD/HTML, CSP, accessibilité         | à venir  | tag `v0.4.0`          |
+| S5 — Pipeline release, démo en ligne, doc finale                           | à venir  | **tag `v1.0.0`**      |
 
 ## Promesse
 
@@ -56,11 +57,15 @@ Le fichier `docs/comment-verifier-souverainete.md` détaille le mode opératoire
 
 ```bash
 # Prérequis : Node 20+ et pnpm 9+
-pnpm install
-pnpm -r build      # build des trois couches
-pnpm -r test       # tests Jest (détecteurs + engine)
+pnpm install --frozen-lockfile
+pnpm format:check  # Prettier (CI bloquant)
+pnpm build         # build des trois couches (ordre : packages avant app)
+pnpm lint          # tsc --noEmit sur les deux tsconfig
+pnpm test          # tests Vitest (60 détecteurs + 60 engine = 120 verts)
 pnpm dev           # SPA Angular en watch sur http://localhost:4200
 ```
+
+L'ordre `format:check → build → lint → test` est volontaire : le `lint` (= `tsc --noEmit`) lit les `dist/*.d.ts` du package frère, donc le build doit passer avant. Voir `.github/workflows/ci.yml`.
 
 L'architecture est en trois couches indépendantes :
 

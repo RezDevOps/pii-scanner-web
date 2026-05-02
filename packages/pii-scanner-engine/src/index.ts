@@ -1,61 +1,78 @@
 /**
  * Point d'entrée public de `@rezdevops/pii-scanner-engine`.
  *
- * Stable depuis la `v0.1.0` : `scanText` est le seul contrat exposé. Les
- * parseurs (CSV/XLSX/PDF/...), le pool de Web Workers et la génération des
- * exports arrivent en S2/S3 sans changer la signature de `scanText`.
+ * Surface stable :
+ * - `v0.1.0` : `scanText`, `TextScanReport`, types `FileFormat` /
+ *   `FileScanResult` / `ScanReport`, constante `VERSION`.
+ * - `v0.2.0` : façade `runScan` / `runScanStream`, abstraction
+ *   `Runner` (`MainThreadRunner`, `WorkerPoolRunner`), parseurs CSV /
+ *   TSV / TXT / MD / JSON, helpers `detectFormat` / `tryDetectFormat`.
+ *
+ * Les parseurs binaires (XLSX, PDF, DOCX, HTML) sont reportés à `v0.2.1`
+ * (cf. CHANGELOG et addendum cadrage). Leurs `FileFormat` restent
+ * déclarés ici dès `v0.2.0` pour que l'API publique ne casse pas
+ * lorsqu'on les activera.
  */
 
-import type { Finding } from "@rezdevops/pii-detectors";
-
+// --- Surface S1 (héritée v0.1.0) ---
 export { scanText } from "./scan-text.js";
 export type { TextScanReport } from "./scan-text.js";
 
-/**
- * Format de fichier reconnu par l'engine. Toute valeur hors de cette liste est
- * rejetée explicitement (pas de fallback silencieux).
- */
-export type FileFormat =
-  | "csv"
-  | "tsv"
-  | "xlsx"
-  | "xls"
-  | "pdf"
-  | "docx"
-  | "txt"
-  | "md"
-  | "json"
-  | "html";
+// --- Types publics centralisés (v0.1.0 + v0.2.0) ---
+export type {
+  FileFormat,
+  FileScanResult,
+  ScanErrorCode,
+  ScanProgress,
+  ScanReport,
+} from "./types.js";
 
-/**
- * Résultat de scan pour un fichier donné. Les *findings* portent leur
- * localisation native (engine ne réécrit pas les coordonnées des détecteurs).
- */
-export interface FileScanResult {
-  /** Nom du fichier d'origine, tel que fourni par le navigateur. */
-  readonly fileName: string;
-  /** Format détecté à partir de l'extension et du type MIME. */
-  readonly format: FileFormat;
-  /** Taille en octets, telle que rapportée par `File.size`. */
-  readonly size: number;
-  /** Findings agrégés sur le contenu du fichier. */
-  readonly findings: readonly Finding[];
-  /** Durée du scan en millisecondes (mesurée côté worker). */
-  readonly durationMs: number;
-}
+// --- Détection de format (v0.2.0) ---
+export {
+  ACTIVE_FORMATS_V0_2_0,
+  DEFERRED_FORMATS_V0_2_1,
+  DeferredFormatError,
+  UnsupportedFormatError,
+  detectFormat,
+  tryDetectFormat,
+} from "./format.js";
+export type { FileDescriptor } from "./format.js";
 
-/**
- * Rapport global d'un scan multi-fichiers.
- */
-export interface ScanReport {
-  /** Identifiant du scan (UUID v4 généré par l'engine). */
-  readonly id: string;
-  /** Date ISO 8601 de génération du rapport. */
-  readonly generatedAt: string;
-  /** Version de l'engine ayant produit le rapport. */
-  readonly engineVersion: string;
-  /** Résultats par fichier. */
-  readonly files: readonly FileScanResult[];
-}
+// --- Façade scan multi-fichiers (v0.2.0) ---
+export { runScan, runScanStream } from "./run-scan.js";
+export type { RunScanOptions, ScanInputFile } from "./run-scan.js";
 
-export const VERSION = "0.1.0";
+// --- Runners (v0.2.0) ---
+export {
+  MainThreadRunner,
+  WorkerPoolRunner,
+  createMainThreadRunner,
+  createWorkerPoolRunner,
+  resolveDetectors,
+} from "./runner/index.js";
+export type {
+  Runner,
+  ScanJob,
+  WorkerFactory,
+  WorkerLike,
+  WorkerPoolRunnerOptions,
+} from "./runner/index.js";
+
+// --- Parseurs (v0.2.0) ---
+// Exposés individuellement pour tests + variantes (CLI). Une UI
+// applicative ne devrait normalement consommer que `runScan`.
+export {
+  csvParser,
+  jsonParser,
+  mdParser,
+  tsvParser,
+  txtParser,
+  getParserForFormat,
+} from "./parsers/index.js";
+export type { FileParser, ParserInput, TextChunk } from "./parsers/index.js";
+
+// --- Worker API (v0.2.0) ---
+export type { ScanWorkerApi } from "./worker/scan-worker-api.js";
+
+// --- Version ---
+export { ENGINE_VERSION as VERSION } from "./version.js";

@@ -56,6 +56,18 @@ Les seules requêtes acceptables sont celles du chargement initial de la page (H
 
 Pour aller plus loin, Chrome propose dans DevTools un mode _Offline_ (onglet Réseau → menu _Throttling_ → _Offline_). Activez-le **avant** de lancer le scan : si l'application fonctionne quand même, c'est qu'elle n'a besoin d'aucune ressource réseau au runtime.
 
+## Vérification que le calcul tourne en Web Workers (à partir de S3)
+
+À compter de la version `v0.3.0` (S3, branchement de l'app Angular sur le pool Comlink livré en S2), vous pouvez vérifier visuellement que les calculs lourds sont effectivement délégués à des Web Workers.
+
+1. Ouvrez DevTools → onglet **Sources** (Chrome/Edge) ou **Débogueur** (Firefox).
+2. Cherchez la section **Threads** ou **Workers** dans la barre latérale.
+3. Lancez un scan sur un fichier de plusieurs Mo.
+4. Vous devez voir apparaître plusieurs entrées du type `scan-worker.js` (jusqu'à `navigator.hardwareConcurrency`, plafonnées à 8).
+5. Pendant le scan, l'UI reste fluide (pas de _jank_ sur les animations) — preuve que le thread principal n'est pas bloqué.
+
+Si vous ne voyez pas de Workers, c'est que vous utilisez l'app Angular sans le pool activé (mode `MainThreadRunner`, fallback). Dans ce cas le calcul tourne sur le thread principal mais reste 100 % local — la promesse souveraineté est intacte, seule la fluidité UI peut être impactée sur très gros fichiers.
+
 ## Vérification de la Content Security Policy
 
 La CSP est servie via une balise `<meta http-equiv="Content-Security-Policy">` dans `index.html`. Vous pouvez la lire en clair :

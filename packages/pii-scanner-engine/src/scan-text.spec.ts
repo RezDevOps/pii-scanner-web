@@ -6,12 +6,16 @@ import {
   validateNir,
 } from "@rezdevops/pii-detectors";
 import { scanText } from "./scan-text.js";
+import { ENGINE_VERSION } from "./version.js";
 
 describe("scanText", () => {
   it("retourne un rapport vide quand aucun finding", () => {
     const report = scanText("Texte parfaitement neutre.", coreDetectors);
     expect(report.findings).toEqual([]);
-    expect(report.engineVersion).toBe("0.1.0");
+    // engineVersion est tiré de version.ts (source unique). On compare à
+    // la constante exportée plutôt qu'à un littéral pour ne pas devoir
+    // mettre à jour ce test à chaque bump.
+    expect(report.engineVersion).toBe(ENGINE_VERSION);
     expect(report.generatedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(report.durationMs).toBeGreaterThanOrEqual(0);
   });

@@ -1,0 +1,28 @@
+feat: livraison S2 v0.2.0 (parseurs texte + pool Workers + façade runScan)
+
+Couche engine effective. Façade `runScan(File[])` + `runScanStream()`,
+abstraction `Runner` (MainThread + WorkerPool Comlink), 5 parseurs texte
+sous contrat unifié `AsyncIterable<TextChunk>`.
+
+Décision de scope (cf. cadrage § 9 v0.2 et garde-fou anti-dérive § 12) :
+seuls les parseurs texte (CSV/TSV/TXT/MD/JSON) sont actifs en v0.2.0.
+Les parseurs binaires (XLSX/PDF/DOCX/HTML) sont déclarés dans
+`FileFormat` mais déclenchent `DeferredFormatError` à la détection ;
+ils sont reportés à v0.2.1 avec une ADR par dépendance.
+
+Détail :
+- Parseurs : PapaParse (CSV/TSV header:true), passthrough ligne-par-ligne
+  (TXT/MD CRLF-safe), parcours récursif itératif (JSON, supporte 200+
+  niveaux d'imbrication, notation $.user.email et $["user-id"]).
+- Runners : `MainThreadRunner` par défaut, `WorkerPoolRunner` Comlink
+  capé à 8 workers, file FIFO, `dispose()` idempotent. workerFactory
+  injectable (pas d'`import.meta.url` codé en dur).
+- ADR 0003 (Comlink) confirmée *accepted*.
+- happy-dom 15.x ajouté en devDep, activé par fichier de test via
+  `// @vitest-environment happy-dom`.
+- 60 tests engine (vs 5 en S1, +55) — couverture format / parseurs /
+  runners / façade y compris cas d'échec en cours de scan.
+- README + architecture.md + comment-verifier-souverainete.md à jour.
+- pii-detectors reste à 0.1.0 (aucun code modifié) ;
+  pii-scanner-engine bumpé à 0.2.0 ; constante VERSION centralisée
+  dans src/version.ts.

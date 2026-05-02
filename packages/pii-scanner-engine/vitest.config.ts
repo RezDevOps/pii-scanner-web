@@ -1,9 +1,12 @@
 /**
  * Configuration Vitest pour `@rezdevops/pii-scanner-engine`.
  *
- * Environnement Node : en S1 l'engine n'expose que `scanText()` qui ne touche
- * ni au DOM ni à `File`. Quand les parseurs binaires arrivent (S2), on
- * basculera sur `happy-dom` ou un environnement dédié si besoin.
+ * Environnement par défaut : `node`. Les fichiers de test qui touchent à
+ * l'API File / Blob / FileReader / TextDecoder DOM déclarent en tête de
+ * fichier `// @vitest-environment happy-dom` pour basculer ponctuellement
+ * sur happy-dom. Ça garde les tests purs (scan-text, runner, format) en
+ * Node (~3× plus rapide) et n'active happy-dom que pour les parseurs et
+ * la façade.
  *
  * Alias `@rezdevops/pii-detectors` → source TypeScript du package frère :
  * Vitest n'a pas besoin du build (`pnpm -r build`) pour exécuter les tests

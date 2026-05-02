@@ -1,6 +1,6 @@
 # Architecture
 
-> **Statut : esquisse S0.** Étoffé en S2 quand l'engine et le pool de workers seront en place. La forme actuelle décrit le découpage en trois couches et le flux de données cible.
+> **Statut : v0.2.0 (S2).** Engine et pool Worker en place. Façade `runScan` opérationnelle en main-thread ; le pool Comlink est livré et activable depuis l'app Angular en S3. Les parseurs binaires (XLSX/PDF/DOCX/HTML) arrivent en `v0.2.1`.
 
 ## Découpage en trois couches
 
@@ -10,38 +10,83 @@
 │  Angular 20 standalone — UI uniquement                       │
 │  Drop zone · file de scan · rapport interactif · exports     │
 └────────────────────────────┬─────────────────────────────────┘
-                             │ façade typée (signals + RxJS)
+                             │ runScanStream() : AsyncIterable<ScanProgress>
+                             │ ou runScan() : Promise<ScanReport>
                              ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  packages/pii-scanner-engine  (@rezdevops/pii-scanner-engine)│
 │  Orchestration sans Angular                                  │
-│  Parseurs · pool de Web Workers · agrégation · exports       │
+│                                                              │
+│  ┌──────────┐  ┌────────┐  ┌─────────────┐  ┌────────────┐   │
+│  │ Format   │→ │Parseurs│→ │   Runner    │→ │ Findings   │   │
+│  │ detect   │  │ CSV/TSV│  │ MainThread  │  │ enrichis   │   │
+│  │          │  │TXT/MD/ │  │ ou          │  │ (line/path)│   │
+│  │          │  │ JSON   │  │ WorkerPool  │  │            │   │
+│  └──────────┘  └────────┘  └─────────────┘  └────────────┘   │
 └────────────────────────────┬─────────────────────────────────┘
-                             │ texte ou flux de texte
+                             │ texte (TextChunk) → findings
                              ▼
 ┌──────────────────────────────────────────────────────────────┐
 │  packages/pii-detectors       (@rezdevops/pii-detectors)     │
 │  Bibliothèque pure — sans I/O, sans DOM                      │
-│  12 détecteurs · validation par clé pour 5 d'entre eux       │
+│  5 détecteurs livrés (email, phone-fr, nir, iban, siret)     │
+│  Validation par clé pour NIR / IBAN / SIRET                  │
 └──────────────────────────────────────────────────────────────┘
 ```
 
-Chaque couche est testable indépendamment : la lib pure avec Jest sur des chaînes, l'engine avec Jest sur des fichiers fixtures, l'UI avec Karma + Playwright.
+Chaque couche est testable indépendamment : la lib pure avec Vitest en environnement Node sur des chaînes, l'engine avec Vitest (env Node + happy-dom ponctuel pour les tests touchant `File`) sur des fichiers fixtures synthétiques, l'UI avec Vitest/Playwright en S3.
 
-## Flux de données (cible v1.0)
+## Flux de données (v0.2.0)
 
-1. L'utilisateur dépose des fichiers dans la drop zone Angular.
-2. La couche UI passe les `File` à l'engine via une façade `Observable<ScanReport>`.
-3. L'engine sélectionne le parseur selon l'extension et le type MIME, instancie un _job_ par fichier, le confie à un worker libre du pool.
-4. Le worker streame le contenu, applique les détecteurs sélectionnés, émet les _findings_ au fil de l'eau.
-5. L'engine agrège les findings, calcule la sévérité finale et la confiance par fichier, renvoie le `ScanReport`.
-6. La couche UI rend le rapport interactif et propose les trois exports (JSON, Markdown, HTML autonome).
+1. L'utilisateur dépose un ou plusieurs `File` (drag-drop ou input ; en S2 c'est l'app Angular S3 qui posera l'UI).
+2. La couche UI appelle `runScan(files)` ou `runScanStream(files)` exporté par `@rezdevops/pii-scanner-engine`.
+3. Pour chaque fichier, la façade :
+   - **détecte** le format via `detectFormat()` (extension → `FileFormat`) ;
+   - **sélectionne** le parseur (`csvParser`, `tsvParser`, `txtParser`, `mdParser`, `jsonParser`) ;
+   - **streame** les `TextChunk` (texte, `line`, `path`) vers le `Runner` ;
+   - **dispatche** chaque chunk sur le `Runner` (par défaut `MainThreadRunner` ; un `WorkerPoolRunner` Comlink est disponible et activable côté app) ;
+   - **agrège** les findings en enrichissant chaque finding avec la coordonnée fichier (`line`, `path`) sans écraser ce que le détecteur a déjà produit.
+4. La façade émet :
+   - en mode `runScan` : un `ScanReport` agrégé en fin de course ;
+   - en mode `runScanStream` : une suite d'évènements `ScanProgress` (`file-started`, `file-completed`, `file-failed`) consommables via `for await` (S3 transformera en `signal`/`Observable`).
+5. Les fichiers en erreur (`unsupported-format`, `deferred-format`, `parser-error`) ne stoppent pas le scan global : la façade enchaîne sur le fichier suivant.
 
-Aucun I/O réseau à aucune étape. Aucun stockage par défaut. La CSP `connect-src 'none'` garantit que toute violation provoquerait un échec immédiat visible dans la console.
+Aucun appel réseau à aucune étape, dans aucun runner. La CSP `connect-src 'none'` du `index.html` provoquerait un échec immédiat visible en console si un import transitif tentait quelque chose.
 
-## Points à figer en S2
+## Détail du `Runner`
 
-- Format exact des messages entre thread principal et workers (Comlink vs postMessage natif — voir ADR 0003).
-- Stratégie de back-pressure quand plusieurs gros fichiers sont déposés simultanément (file FIFO simple ou priorité par taille décroissante).
-- Politique d'annulation : un utilisateur qui clique « annuler » doit voir le scan s'arrêter en moins de 500 ms.
-- Bornes mémoire : warning utilisateur au-delà de 100 Mo par fichier (cadrage § 6.3).
+Le `Runner` est une abstraction stable du moyen d'exécution de `scanText`.
+
+```ts
+interface Runner {
+  runScanText(job: {
+    text: string;
+    detectorIds: string[];
+  }): Promise<readonly Finding[]>;
+  dispose(): Promise<void> | void;
+}
+```
+
+Deux implémentations livrées en `v0.2.0` :
+
+| Implémentation     | Quand                                                   | Coût                                        |
+| ------------------ | ------------------------------------------------------- | ------------------------------------------- |
+| `MainThreadRunner` | Toujours dispo. Défaut tant que l'app n'a pas câblé S3. | Aucun. Sérialisation = pointeur en mémoire. |
+| `WorkerPoolRunner` | Navigateur, gros fichiers, ne pas bloquer l'UI.         | 1 Worker par cœur (max 8) + sérialisation.  |
+
+L'app Angular (S3) injectera `WorkerPoolRunner` via `runScan(files, { runner })`. Le module `@rezdevops/pii-scanner-engine` ne suppose JAMAIS un `import.meta.url` particulier : c'est le caller qui fournit la `workerFactory` (en S3 : `() => new Worker(new URL("./scan-worker.js", import.meta.url), { type: "module" })`).
+
+## Points figés en S2 (cf. ADR 0003)
+
+- **Comlink** validé pour l'IPC vers les Workers — abstraction `Runner` garantit la réversibilité si le profilage S3 montre un goulot.
+- **File FIFO simple** dans le `WorkerPoolRunner` (priorité par taille décroissante reportée tant qu'un cas usage ne le justifie pas).
+- **Politique d'annulation** : reportée à S3 (besoin du composant UI pour brancher le `AbortController` proprement).
+- **Bornes mémoire** : reportées à S3 — sera traitée côté UI (warning utilisateur > 100 Mo par fichier).
+- **Format JSON** : parse complet (pas de streaming) en `v0.2.0`. Streaming NDJSON sera réévalué si profilage le réclame.
+
+## Points figés en S2.1 (parseurs binaires)
+
+- **XLSX** via SheetJS — bundle ~250 ko, ADR à rédiger.
+- **PDF** via PDF.js — texte uniquement (OCR repoussé en `v1.1` cf. cadrage § 5).
+- **DOCX** via mammoth — extraction texte simple.
+- **HTML** via `DOMParser` natif (zéro dep).

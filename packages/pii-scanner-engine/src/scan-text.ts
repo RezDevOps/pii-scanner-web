@@ -5,12 +5,14 @@
  * sélection de détecteurs, applique chaque détecteur, agrège les findings et
  * retourne un mini-rapport (`TextScanReport`) horodaté et chronométré.
  *
- * En S1, c'est le SEUL contrat exposé par l'engine. Les couches `parseFile`
- * et `runWorkers` (S2-S3) viendront s'empiler par-dessus, sans changer la
- * signature de `scanText`.
+ * Stable depuis `v0.1.0`. La couche `runScan(File[])` (v0.2.0) consomme
+ * `scanText` via le `Runner` (cf. `src/runner/`) et n'altère pas sa
+ * signature.
  */
 
 import type { Detector, Finding } from "@rezdevops/pii-detectors";
+
+import { ENGINE_VERSION } from "./version.js";
 
 /**
  * Rapport de scan d'un texte unique. Volontairement plus léger que
@@ -89,6 +91,3 @@ export function scanText(
     findings: sorted,
   };
 }
-
-/** Constante de version exposée pour les rapports. */
-const ENGINE_VERSION = "0.1.0";
