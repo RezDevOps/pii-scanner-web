@@ -19,7 +19,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
-**v1.0.1 — hotfix CI release (rejeu du pipeline v1.0).** Le job `build-app` du `release.yml` v1.0.0 plantait à l'ouverture, faute de pré-build des packages frères avant le bundling Angular. Conséquence : Docker / ZIP / SBOM / GitHub Pages n'avaient pas été produits par la CI (les packages npm ayant été publiés manuellement). Cette release rejoue le pipeline complet en bonus : provenance OIDC enfin appliquée à `@rezdevops/pii-detectors` et `@rezdevops/pii-scanner-engine` (impossible en 1.0.0 publié manuellement), images GHCR multi-arch signées, ZIP standalone, SBOM CycloneDX, GitHub Pages mis à jour. Aucun changement fonctionnel : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`.
+**v1.0.2 — hotfix CI SBOM (cyclonedx-npm → cdxgen).** Le job `build-sbom` du `release.yml` v1.0.1 plantait sur `npm error code ELSPROBLEMS` parce que `@cyclonedx/cyclonedx-npm` invoque `npm ls` sous le capot, incompatible avec la structure non standard de `node_modules/.pnpm/`. Migration vers `@cyclonedx/cdxgen`, l'outil CycloneDX qui parse `pnpm-lock.yaml` directement. Cette release rejoue le pipeline complet pour produire enfin le SBOM CycloneDX et la GitHub Release agrégée (ZIP + SBOM + signatures cosign). Aucun changement fonctionnel : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`.
 
 | Jalon                                                                      | Statut   | Sortie                |
 | -------------------------------------------------------------------------- | -------- | --------------------- |
@@ -31,7 +31,8 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 | S4 — 7 détecteurs étendus + exports JSON / Markdown / HTML autonome        | ✅ livré | tag `v0.4.0`          |
 | S4.1 — CSP stricte + audit deps + WCAG AA + lazy-loading parseurs binaires | ✅ livré | tag `v0.4.1`          |
 | S5 — Pipeline release multi-cibles + landing + page vérifier publique      | ✅ livré | tag `v1.0.0`          |
-| S5.1 — Hotfix CI release (build packages avant bundle Angular)             | ✅ livré | **tag `v1.0.1`**      |
+| S5.1 — Hotfix CI release (build packages avant bundle Angular)             | ✅ livré | tag `v1.0.1`          |
+| S5.2 — Hotfix CI SBOM (cyclonedx-npm → cdxgen, compat pnpm)                | ✅ livré | **tag `v1.0.2`**      |
 
 ## Promesse
 

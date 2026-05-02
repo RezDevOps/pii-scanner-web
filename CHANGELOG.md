@@ -2,6 +2,30 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.0.2] — 2026-05-02
+
+Sprint S5.2 — **hotfix CI SBOM**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.1`. Cette release migre l'outil de génération SBOM (`@cyclonedx/cyclonedx-npm` → `@cyclonedx/cdxgen`) pour rétablir la production de `bom.json` dans le pipeline release, ce qui débloque la création de la GitHub Release agrégée (ZIP + SBOM + signatures cosign).
+
+### Corrections
+
+- **`.github/workflows/release.yml` — job `build-sbom`** : remplacement de `pnpm dlx @cyclonedx/cyclonedx-npm@^1.20.0` par `npx --yes @cyclonedx/cdxgen@^11 -t pnpm --spec-version 1.5 -o bom.json .`. Bug corrigé : `@cyclonedx/cyclonedx-npm` invoque `npm ls --all --json` sous le capot pour énumérer le graphe de dépendances. La structure non standard de `node_modules/.pnpm/` (symlinks vers les packages physiques) fait sortir `npm ls` en `code ELSPROBLEMS` avec une cascade de `extraneous` (paquets vus par npm mais absents du graphe), `invalid` (peer deps résolues différemment par pnpm) et `missing` (peer deps qui ne sont pas hoist au top-level comme npm s'y attend). Conséquence en `v1.0.1` : tout le pipeline release devenait rouge à cause du SBOM, et la GitHub Release finale ne s'agrégeait pas (jobs `release`, `build-zip`, `build-sbom` interdépendants côté assets). Le passage à `cdxgen` règle le problème en parsant `pnpm-lock.yaml` directement, sans passer par `npm ls`. `cdxgen` est l'outil officiel CycloneDX pour les monorepos non-npm (pnpm, yarn berry, bun). **Second piège évité au passage** : on appelle `cdxgen` via `npx --yes` plutôt que `pnpm dlx`. Depuis pnpm 9, les build scripts des dépendances sont bloqués par défaut (sécurité supply-chain) ; or `cdxgen` embarque `@appthreat/sqlite3` (base de vulns OSV/CVE) avec un build natif node-gyp que pnpm refuse d'exécuter sans approbation explicite, ce qui aurait fait sortir le step en `ERR_PNPM_IGNORED_BUILDS`. `npx --yes` ne souffre pas de cette restriction. Alternative écartée : ajouter `onlyBuiltDependencies` dans la config pnpm racine (impacte le projet entier pour une dépendance one-shot CI).
+
+### Modifications
+
+- **`packages/pii-detectors/package.json`** — bumpé `1.0.1` → `1.0.2`.
+- **`packages/pii-scanner-engine/package.json`** — bumpé `1.0.1` → `1.0.2`.
+- **`apps/pii-scanner-web/package.json`** — bumpé `1.0.1` → `1.0.2`.
+- **Constantes `DETECTORS_VERSION` et `ENGINE_VERSION`** alignées à `1.0.2`.
+- **`README.md` — section `## Statut`** mise à jour, ligne « S5.2 — Hotfix CI SBOM » ajoutée à la table roadmap.
+
+### Notes
+
+- **Posture souveraineté préservée.** La variable d'environnement `FETCH_LICENSE: "false"` est positionnée sur le step `cdxgen` pour empêcher les requêtes au registry npm visant à enrichir les métadonnées de licence. Le SBOM est généré uniquement à partir du `pnpm-lock.yaml` et des `package.json` locaux téléchargés par `pnpm install --frozen-lockfile`. Cohérent avec la promesse « zéro fetch externe non nécessaire au build ».
+- **Format SBOM identique.** `cdxgen` produit la même spec CycloneDX 1.5 JSON que `cyclonedx-npm`, signée à l'identique par cosign keyless. Les commandes de vérification documentées dans le README et le corps des GitHub Releases restent valides sans changement.
+- **Pas de bump de la spec CycloneDX (reste 1.5).** Bump à 1.6 envisageable quand cosign et les outils downstream auront stabilisé. Décision documentée dans le commentaire bloc du job `build-sbom`.
+- **Pas de re-tag de `v1.0.1`.** L'immutabilité du tag est préservée. Les autres jobs de la release `v1.0.1` (publish-npm, build-docker, deploy-pages) ayant pu réussir indépendamment de `build-sbom`, les artefacts `1.0.1` restent disponibles côté npm / GHCR / GitHub Pages. La GitHub Release `v1.0.1` reste sans `bom.json` ni ZIP attaché ; `v1.0.2` fournit la version complète.
+- **Lockfile pnpm régénéré** dans le même commit que les bumps de manifests.
+
 ## [1.0.1] — 2026-05-02
 
 Sprint S5.1 — **hotfix CI release**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.0` (et inchangés depuis `v0.4.1`). Cette release rejoue le pipeline de distribution `v1.0` qui n'avait pas pu produire l'image Docker, le ZIP standalone, le SBOM CycloneDX ni le déploiement GitHub Pages, faute d'un bug d'orchestration dans `.github/workflows/release.yml`. Les packages npm (`@rezdevops/pii-detectors`, `@rezdevops/pii-scanner-engine`) avaient été publiés manuellement en `1.0.0` sans provenance OIDC ; ils sont republiés ici en `1.0.1` avec la signature sigstore keyless attendue.

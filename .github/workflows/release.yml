@@ -232,10 +232,52 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # @cyclonedx/cdxgen est l'outil de référence CycloneDX pour les
+      # monorepos pnpm — il parse `pnpm-lock.yaml` directement.
+      #
+      # On ne peut PAS utiliser @cyclonedx/cyclonedx-npm : ce dernier
+      # invoque `npm ls --all --json` sous le capot et plante sur la
+      # structure non standard de `node_modules/.pnpm/` (symlinks vers
+      # packages physiques) avec `extraneous` / `invalid` / `missing`
+      # peer deps. Cf. release v1.0.1 où ce job avait planté avec
+      # « npm error code ELSPROBLEMS ».
+      #
+      # `npx --yes` au lieu de `pnpm dlx` : depuis pnpm 9, les build
+      # scripts des dépendances sont bloqués par défaut (sécurité
+      # supply-chain). cdxgen embarque `@appthreat/sqlite3` (base de
+      # vulns OSV/CVE pour enrichir le SBOM) avec un build natif
+      # node-gyp, que pnpm refuse d'exécuter sans approbation
+      # explicite (`pnpm approve-builds`, interactif). Résultat avec
+      # `pnpm dlx` : `ERR_PNPM_IGNORED_BUILDS`, exit non-zero, cdxgen
+      # ne tourne même pas. `npx --yes` ne souffre pas de cette
+      # restriction (npm 9+ exécute les build scripts par défaut).
+      # Alternative écartée : ajouter `onlyBuiltDependencies` dans la
+      # config pnpm racine (impacte le projet pour une dépendance
+      # one-shot CI).
+      #
+      # `FETCH_LICENSE=false` : pas de requête au registry npm pour
+      # enrichir les métadonnées de licence. La CI a déjà téléchargé
+      # toutes les deps via `pnpm install --frozen-lockfile` ; on
+      # s'appuie uniquement sur le lockfile + les `package.json`
+      # locaux. Posture cohérente avec la promesse souveraineté du
+      # projet (zéro fetch externe non nécessaire au build).
+      #
+      # `-t pnpm` : type pnpm explicite (cdxgen détecte le lockfile
+      # même sans cet hint, mais l'expliciter évite les régressions
+      # silencieuses si plusieurs lockfiles cohabitent).
+      #
+      # `--spec-version 1.5` : aligné sur la dernière version stable
+      # de la spec CycloneDX au tag v1.0.0. Bump à 1.6 envisageable
+      # quand cosign et les outils downstream auront stabilisé.
       - name: Generate CycloneDX SBOM
-        # @cyclonedx/cyclonedx-npm est invoqué via dlx pour ne pas l'ajouter
-        # en devDependency permanente (pas utile en dev local).
-        run: pnpm dlx @cyclonedx/cyclonedx-npm@^1.20.0 --output-file bom.json --output-format json
+        env:
+          FETCH_LICENSE: "false"
+        run: |
+          npx --yes @cyclonedx/cdxgen@^11 \
+            -t pnpm \
+            --spec-version 1.5 \
+            -o bom.json \
+            .
 
       - name: Upload SBOM artifact
         uses: actions/upload-artifact@v4
