@@ -47,11 +47,16 @@ jobs:
       - name: Format check
         run: pnpm format:check
 
-      - name: Lint
-        run: pnpm lint
-
+      # Build avant lint : le lint des packages = `tsc --noEmit`, et
+      # `pii-scanner-engine` importe `@rezdevops/pii-detectors`. Sans build
+      # préalable, le dist/ du package frère n'existe pas et tsc échoue
+      # sur le résolveur de types (cf. ADR future si on bascule en
+      # TypeScript Project References pour s'affranchir de cet ordre).
       - name: Build (lib + engine + app)
         run: pnpm build
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Tests
         run: pnpm test
