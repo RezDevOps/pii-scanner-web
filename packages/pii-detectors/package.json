@@ -1,6 +1,6 @@
 {
   "name": "@rezdevops/pii-detectors",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Détecteurs déterministes de données à caractère personnel (PII) — bibliothèque pure, sans I/O ni DOM. 12 détecteurs : email, téléphone FR, NIR, IBAN, BIC, SIRET, TVA intracom FR, carte bancaire (Luhn), code postal FR, plaque immat FR, date de naissance, adresse postale FR.",
   "license": "AGPL-3.0-only",
   "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",

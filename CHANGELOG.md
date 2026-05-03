@@ -2,6 +2,28 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.0.4] — 2026-05-02
+
+Sprint S5.4 — **hotfix cosign image name**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.3`. Cette release rejoue le pipeline de distribution `v1.0` pour produire enfin l'image Docker GHCR signée cosign keyless et la GitHub Release agrégée, qui restaient absentes en `v1.0.3` à cause d'un mismatch de casse dans le nom de l'image.
+
+### Corrections
+
+- **`.github/workflows/release.yml` — variable `env.IMAGE_NAME`** : remplacement de `ghcr.io/${{ github.repository_owner }}/pii-scanner-web` (qui retournait `ghcr.io/RezDevOps/pii-scanner-web` en CamelCase) par `ghcr.io/rezdevops/pii-scanner-web` hard-codé en lowercase. Bug corrigé : la spec OCI/Docker (distribution-spec § grammar) impose des noms de repository en minuscules. Le client Docker classique normalise silencieusement les majuscules, et GHCR accepte le push avec n'importe quelle casse côté input. En revanche, `cosign sign` et `cosign verify` utilisent `go-containerregistry` (lib Go officielle de Google) qui est strict et refuse toute majuscule avec « parsing reference: could not parse reference ». En `v1.0.3`, le step `Build & push image` réussissait mais le step `Sign image (keyless)` qui suivait plantait sur `Error: signing [...]: parsing reference: could not parse reference: ghcr.io/RezDevOps/pii-scanner-web@sha256:c6dfe48...`. Conséquence : image multi-arch publiée sur GHCR mais non signée, job `build-docker` rouge, et le job `release` final qui dépendait de `build-docker` ne s'exécutait pas. Le fix corrige aussi les commandes `cosign verify` documentées dans le body de chaque GitHub Release (que le user pouvait jusqu'ici copier-coller à perte). Hard-codage retenu plutôt qu'un step de lowercase dynamique parce que (a) l'organisation GitHub `RezDevOps` est stable, (b) c'est une seule ligne contre 4-5 lignes de calcul, (c) un commentaire bloc rappelle l'invariant et la procédure si l'org change un jour.
+
+### Modifications
+
+- **`packages/pii-detectors/package.json`** — bumpé `1.0.3` → `1.0.4`.
+- **`packages/pii-scanner-engine/package.json`** — bumpé `1.0.3` → `1.0.4`.
+- **`apps/pii-scanner-web/package.json`** — bumpé `1.0.3` → `1.0.4`.
+- **Constantes `DETECTORS_VERSION` et `ENGINE_VERSION`** alignées à `1.0.4`.
+- **`README.md` — table roadmap** : ligne « S5.4 — Hotfix cosign image name » ajoutée.
+
+### Notes
+
+- **Pas de re-tag de `v1.0.3`.** L'immutabilité du tag est préservée. Les autres jobs de la release `v1.0.3` (publish-npm, build-zip, build-sbom, deploy-pages) ayant tous réussi, les artefacts `1.0.3` restent disponibles côté npm / GitHub Pages / SBOM. Seuls l'image Docker signée et la GH Release agrégée manquent en `1.0.3` ; `v1.0.4` les fournit. L'image Docker `1.0.3` non-signée présente sur GHCR n'est pas retirée (immutabilité aussi côté GHCR), elle reste accessible mais sans la chaîne de signature sigstore — préférer `1.0.4` ou ultérieur en production.
+- **Audit du pipeline post-fix.** Recensé en parallèle de ce hotfix : aucun autre piège bloquant détecté dans `release.yml`. Risques mineurs identifiés (deprecations futures `docker/metadata-action@v5`, `softprops/action-gh-release@v2`, `sigstore/cosign-installer@v3` ; race condition théorique sur retention artifacts à 7 jours en cas de pipeline > 7 j ; absence de `if-no-files-found: error` sur le download SBOM dans le job `release` final) — à reprendre dans une passe d'amélioration séparée, hors scope hotfix.
+- **Lockfile pnpm régénéré** dans le même commit que les bumps de manifests.
+
 ## [1.0.3] — 2026-05-02
 
 Sprint S5.3 — **hotfix Dockerfile multi-arch**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.2`. Cette release refactore l'image Docker pour rétablir la production des deux variantes d'architecture (amd64 + arm64) sur GHCR, qui n'avaient pas pu être publiées en `v1.0.2` à cause d'un crash QEMU pendant le build arm64.

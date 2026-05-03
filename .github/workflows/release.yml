@@ -34,7 +34,17 @@ concurrency:
 env:
   NODE_VERSION: "20"
   PNPM_VERSION: "9.12.0"
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/pii-scanner-web
+  # IMAGE_NAME hard-codé en lowercase. La spec OCI/Docker impose des
+  # noms de repository en minuscules, et `cosign sign` (qui utilise
+  # go-containerregistry, plus strict que le client Docker) refuse
+  # toute majuscule avec « could not parse reference ». L'expression
+  # `${{ github.repository_owner }}` retournerait `RezDevOps` en
+  # CamelCase, ce qui marche pour le push GHCR (qui normalise en
+  # interne) mais casse cosign sign / cosign verify. Cf. release
+  # v1.0.3 où ce job avait planté côté signature après un push
+  # réussi. Si le projet change un jour d'organisation GitHub, il
+  # faudra mettre à jour cette ligne en conséquence.
+  IMAGE_NAME: ghcr.io/rezdevops/pii-scanner-web
   ZIP_NAME_BASE: pii-scanner-web
 
 jobs:

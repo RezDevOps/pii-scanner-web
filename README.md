@@ -19,7 +19,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
-**v1.0.3 — hotfix Dockerfile multi-arch (suppression de l'étape builder QEMU).** Le job `build-docker` du `release.yml` v1.0.2 plantait avec `qemu: uncaught target signal 4 (Illegal instruction) - core dumped` pendant l'émulation arm64 sur runner amd64. L'ancien Dockerfile multi-stage faisait tourner `pnpm install` puis `ng build` (donc esbuild) sous QEMU, et certaines instructions SIMD modernes (NEON/SVE en arm64) ne sont pas correctement émulées. Refactor en mono-stage nginx pur : le dist Angular pré-buildé par la CI est copié directement dans nginx, plus aucun binaire à exécuter pendant le build Docker → pas besoin de QEMU. Bonus : image runtime ~6× plus légère (pas de couche node intermédiaire), build Docker beaucoup plus rapide. Aucun changement fonctionnel : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`.
+**v1.0.4 — hotfix cosign image name (lowercase OCI).** Le step `Sign image (keyless)` du job `build-docker` plantait après un push GHCR pourtant réussi : `Error: signing [...]: parsing reference: could not parse reference: ghcr.io/RezDevOps/pii-scanner-web@sha256:...`. La spec OCI/Docker impose des noms de repository en minuscules ; `cosign sign` (qui utilise go-containerregistry) refuse les majuscules, là où le client Docker normalisait silencieusement. L'expression `${{ github.repository_owner }}` retournait `RezDevOps` en CamelCase. Hard-codage de `IMAGE_NAME: ghcr.io/rezdevops/pii-scanner-web` en lowercase dans `release.yml`. Corrige aussi les commandes `cosign verify` du body GitHub Release que le user pouvait copier-coller. Aucun changement fonctionnel : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`.
 
 | Jalon                                                                      | Statut   | Sortie                |
 | -------------------------------------------------------------------------- | -------- | --------------------- |
@@ -33,7 +33,8 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 | S5 — Pipeline release multi-cibles + landing + page vérifier publique      | ✅ livré | tag `v1.0.0`          |
 | S5.1 — Hotfix CI release (build packages avant bundle Angular)             | ✅ livré | tag `v1.0.1`          |
 | S5.2 — Hotfix CI SBOM (cyclonedx-npm → cdxgen, compat pnpm)                | ✅ livré | tag `v1.0.2`          |
-| S5.3 — Hotfix Docker multi-arch (Dockerfile mono-stage, plus de QEMU)      | ✅ livré | **tag `v1.0.3`**      |
+| S5.3 — Hotfix Docker multi-arch (Dockerfile mono-stage, plus de QEMU)      | ✅ livré | tag `v1.0.3`          |
+| S5.4 — Hotfix cosign image name (lowercase OCI imposé par spec)            | ✅ livré | **tag `v1.0.4`**      |
 
 ## Promesse
 
