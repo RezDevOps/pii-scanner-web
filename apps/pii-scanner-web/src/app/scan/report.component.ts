@@ -100,7 +100,7 @@ interface SummaryEntry {
                 (click)="exportAs('json')"
                 aria-label="Télécharger le rapport au format JSON"
               >
-                <mat-icon aria-hidden="true">code</mat-icon>
+                <mat-icon aria-hidden="true" svgIcon="code"></mat-icon>
                 JSON
               </button>
               <button
@@ -110,7 +110,7 @@ interface SummaryEntry {
                 (click)="exportAs('md')"
                 aria-label="Télécharger le rapport au format Markdown"
               >
-                <mat-icon aria-hidden="true">article</mat-icon>
+                <mat-icon aria-hidden="true" svgIcon="article"></mat-icon>
                 Markdown
               </button>
               <button
@@ -120,7 +120,7 @@ interface SummaryEntry {
                 (click)="exportAs('html')"
                 aria-label="Télécharger le rapport HTML autonome"
               >
-                <mat-icon aria-hidden="true">html</mat-icon>
+                <mat-icon aria-hidden="true" svgIcon="html"></mat-icon>
                 HTML autonome
               </button>
             </div>

@@ -6,4 +6,4 @@
  * À chaque bump de `package.json`, mettre à jour ici. La CI vérifiera
  * (en S3+) la cohérence via un test de lint dédié.
  */
-export const ENGINE_VERSION = "1.0.4";
+export const ENGINE_VERSION = "1.0.5";

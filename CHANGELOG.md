@@ -2,6 +2,33 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.0.5] — 2026-05-03
+
+Sprint S5.5 — **restitution des icônes Material en SVG inline souverains**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.4`. Cette release répare un défaut visuel introduit pendant le durcissement souveraineté : les `<mat-icon>` rendaient leur nom textuel à la place du glyphe parce que la police « Material Icons » n'était pas chargée et que la CSP `connect-src 'none'` interdit par construction le fallback Google Fonts. Les 8 icônes utilisées sont désormais embarquées en SVG inline dans le code source de l'app, enregistrées au bootstrap via `MatIconRegistry.addSvgIconLiteral()`, sans aucune requête réseau ni concession sur la CSP.
+
+### Corrections
+
+- **`apps/pii-scanner-web/src/app/icons/icon-registry.ts` (nouveau)** — provider `provideMaterialIcons()` câblé dans `app.config.ts` qui enregistre 8 SVG Material Symbols Outlined (variante `wght 400`, viewBox `0 -960 960 960`, copies de `@material-symbols/svg-400/outlined/`, Apache 2.0) via `MatIconRegistry.addSvgIconLiteral()`. Choix de `addSvgIconLiteral` plutôt que `addSvgIcon(url)` parce que ce dernier passe par `HttpClient` — même vers la même origine, l'XHR est bloquée par `connect-src 'none'`. Les SVG sont patchés pour porter `fill="currentColor"` sur leur `<path>`, sans quoi `<mat-icon svgIcon="…">` ne pourrait pas hériter de la couleur du texte parent (les SVG bruts conservent leur fill noir par défaut). Inventaire embarqué : `cloud_upload` (drop-zone), `schedule` / `autorenew` / `check_circle` / `error` (statuts file de scan), `code` / `article` / `html` (boutons d'export). Coût bundle : ≈ 4 Ko de SVG inline, fondu dans le chunk principal.
+- **`apps/pii-scanner-web/src/app/scan/drop-zone.component.ts`, `file-queue.component.ts`, `report.component.ts`** — bascule des 7 usages de `<mat-icon>nom</mat-icon>` vers `<mat-icon svgIcon="nom">` (ou `[svgIcon]="iconName(...)"` pour le cas dynamique de la file). Aucun changement de logique, juste de mécanisme de rendu.
+- **`apps/pii-scanner-web/src/index.html` — commentaire CSP** : la section `img-src` / `font-src` mentionnait encore « icônes Material en data: SVG inline » et « police Roboto packagée », vestige du sprint S5 qui s'appuyait sur Google Fonts. Réécrit pour refléter la réalité : les SVG sont inlinés en TypeScript, aucune police n'est packagée (la stack système couvre tout le texte), `font-src 'self' data:` est conservée par anticipation. `connect-src 'none'` reste intact — la promesse souveraineté n'est en rien diluée par ce sprint.
+
+### Modifications
+
+- **`apps/pii-scanner-web/public/icons/*.svg` (8 nouveaux fichiers)** — copies versionnées des 8 SVG Material Symbols Outlined utilisés. Ces fichiers ne sont pas chargés au runtime (la CSP les bloquerait), mais conservés à des fins d'**audit humain** : toute personne souhaitant vérifier que les strings inline du `icon-registry.ts` sont bien des Material Symbols non altérés peut comparer ces fichiers avec le package `@material-symbols/svg-400/outlined/`. Servis statiquement par Angular CLI, donc également accessibles via `/icons/<nom>.svg` au cas où on voudrait les consulter dans le navigateur.
+- **`apps/pii-scanner-web/public/icons/README.md` (nouveau)** — explique le double-emploi (référence d'audit + non-chargés au runtime) et la procédure de mise à jour (`npm install @material-symbols/svg-400 --no-save` + `sed` qui injecte `fill="currentColor"`, à reporter aussi dans `icon-registry.ts`).
+- **`NOTICE`** — ajout du bloc « Composants tiers embarqués dans la SPA » avec attribution Material Symbols (Apache 2.0, Copyright 2024 Google LLC, modification mentionnée : `fill="currentColor"` injecté). Conformité licence Apache 2.0.
+- **`packages/pii-detectors/package.json`** — bumpé `1.0.4` → `1.0.5`.
+- **`packages/pii-scanner-engine/package.json`** — bumpé `1.0.4` → `1.0.5`.
+- **`apps/pii-scanner-web/package.json`** — bumpé `1.0.4` → `1.0.5`.
+- **Constantes `DETECTORS_VERSION` (`pii-detectors/src/index.ts`) et `ENGINE_VERSION` (`pii-scanner-engine/src/version.ts`)** alignées à `1.0.5`.
+- **`README.md` — bloc « Statut »** : nouvelle puce « v1.0.5 » expliquant le sprint, ligne « S5.5 » ajoutée à la table roadmap, exemples de commandes (`docker pull`, `docker run`, `cosign verify`, `cosign verify-blob`) bumpés à `1.0.5`.
+
+### Notes
+
+- **Vérification visuelle après déploiement.** Cette release ne change rien à la logique métier, mais le seul moyen de constater le fix est d'ouvrir l'app et de regarder la dropzone, la file de scan et les boutons d'export. Sur la démo GitHub Pages, attendre que le job `deploy-pages` du workflow `release.yml` termine et vider le cache navigateur (`Ctrl+Shift+R`).
+- **CSP intacte.** Aucune directive CSP n'a été assouplie. La promesse « zéro requête sortante observable en DevTools » reste tenue à l'identique. Le `MatIconRegistry.addSvgIconLiteral()` injecte du SVG dans le DOM via `innerHTML` — c'est du contenu déjà en mémoire JS, pas une requête réseau ; rien n'apparaît dans l'onglet Réseau.
+- **Pas d'impact tests / lint / format.** Suite de tests inchangée (175 + 124 + 31 = 330 tests verts), `pnpm lint` et `pnpm format:check` verts, `pnpm build` produit `dist/browser` sans warning supplémentaire.
+
 ## [1.0.4] — 2026-05-02
 
 Sprint S5.4 — **hotfix cosign image name**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.3`. Cette release rejoue le pipeline de distribution `v1.0` pour produire enfin l'image Docker GHCR signée cosign keyless et la GitHub Release agrégée, qui restaient absentes en `v1.0.3` à cause d'un mismatch de casse dans le nom de l'image.

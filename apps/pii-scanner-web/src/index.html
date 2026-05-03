@@ -19,9 +19,14 @@
       - `style-src 'self' 'unsafe-inline'` : Angular Material injecte des
         styles inline sur les composants (mat-ripple, mat-overlay). Le
         compromis est documenté ; pas d'autres vecteurs (pas de scripts inline).
-      - `img-src 'self' data:` : icônes Material en data: SVG inline.
-      - `font-src 'self' data:` : police Roboto packagée (data: pour les
-        glyphes encodés en base64 par Material).
+      - `img-src 'self' data:` : Angular Material peut produire des data:
+        URI pour des décorations légères (ripple, overlay). Aucune image
+        externe n'est chargée.
+      - `font-src 'self' data:` : conservée par anticipation. Aucune
+        police n'est packagée à ce jour — la stack système est utilisée
+        partout (cf. `src/styles.scss`). Les icônes Material sont rendues
+        depuis des SVG inline TypeScript (cf. `src/app/icons/icon-registry.ts`),
+        donc ni Material Icons font, ni Google Fonts, ni requête réseau.
       - `worker-src 'self' blob:` : Web Worker du pool de scan
         (bundler Angular peut servir le worker via un blob: URL).
       - `object-src 'none'` + `media-src 'none'` + `manifest-src 'none'`

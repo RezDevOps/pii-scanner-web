@@ -55,8 +55,8 @@ import type { FileQueueEntry } from "./scan.service";
                   class="status-icon"
                   aria-hidden="true"
                   [attr.title]="iconLabel(entry.status)"
-                  >{{ iconName(entry.status) }}</mat-icon
-                >
+                  [svgIcon]="iconName(entry.status)"
+                ></mat-icon>
                 <span class="name" [title]="entry.fileName">{{
                   entry.fileName
                 }}</span>

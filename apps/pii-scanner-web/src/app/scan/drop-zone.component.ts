@@ -74,7 +74,11 @@ export { ACCEPTED_EXTENSIONS, DEFAULT_MAX_TOTAL_BYTES, validateFiles };
       (click)="onZoneClick($event)"
     >
       <mat-card-content class="content">
-        <mat-icon aria-hidden="true" class="icon">cloud_upload</mat-icon>
+        <mat-icon
+          aria-hidden="true"
+          class="icon"
+          svgIcon="cloud_upload"
+        ></mat-icon>
         <h2 class="title">Glissez vos fichiers ici</h2>
         <p class="muted">
           ou
