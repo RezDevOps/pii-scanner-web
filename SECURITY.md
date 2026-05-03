@@ -28,7 +28,7 @@ Deux canaux acceptés :
 1. **GitHub Security Advisory** (préféré) — dans l'onglet
    [Security du repo](https://github.com/RezDevOps/pii-scanner-web/security/advisories/new),
    « Report a vulnerability ». Ce canal permet une discussion privée avec le mainteneur, avec proposition de patch et coordination de la divulgation.
-2. **Email** — [`r.rezaire@gmail.com`](mailto:r.rezaire@gmail.com), avec objet préfixé `[security pii-scanner-web]`. Privilégier ce canal si vous n'avez pas de compte GitHub. PGP non requis ; si vous voulez chiffrer, demandez la clé en clair par retour de mail.
+2. **Email** — [`contact@rezdevops.com`](mailto:contact@rezdevops.com), avec objet préfixé `[security pii-scanner-web]`. Privilégier ce canal si vous n'avez pas de compte GitHub. PGP non requis ; si vous voulez chiffrer, demandez la clé en clair par retour de mail.
 
 Mentionner si possible :
 

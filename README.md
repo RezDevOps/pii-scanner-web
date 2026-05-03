@@ -122,7 +122,7 @@ En une phrase : ouvrir DevTools (onglet Réseau), déposer un fichier, lancer le
 
 ## Sécurité
 
-Politique de signalement : voir [`SECURITY.md`](SECURITY.md). Les vulnérabilités peuvent être signalées en privé via `GitHub Security Advisories` ou par email à `r.rezaire@gmail.com`.
+Politique de signalement : voir [`SECURITY.md`](SECURITY.md). Les vulnérabilités peuvent être signalées en privé via `GitHub Security Advisories` ou par email à `contact@rezdevops.com`.
 
 L'audit des dépendances est documenté à chaque sprint qui touche le `package.json` ou le lockfile (`docs/audit-dependances-v*.md`). La CI bloque sur toute nouvelle vulnérabilité de niveau `high` ou `critical` (`pnpm audit --audit-level=high`).
 

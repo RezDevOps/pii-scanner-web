@@ -4,7 +4,7 @@
   "private": true,
   "description": "Application Angular du scanner PII local-only — UI uniquement, consomme @rezdevops/pii-scanner-engine via une façade.",
   "license": "AGPL-3.0-only",
-  "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",
+  "author": "Rudy Rezaire <contact@rezdevops.com> (RezDevOps)",
   "type": "module",
   "scripts": {
     "ng": "ng",

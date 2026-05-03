@@ -35,7 +35,7 @@
 - **Sévérité par défaut** : `medium` — un email seul est rarement à lui seul une donnée critique, mais reste une PII au sens du RGPD art. 4(1).
 - **Confiance type** : `high` dès que le format matche (pas de clé à vérifier).
 - **Algorithme** : expression régulière mono-passe sur le texte. Local-part = `[A-Za-z0-9!#$%&'*+/=?^_\`{|}~-]+` avec points internes autorisés. Domaine = labels DNS conformes RFC 1035 + TLD alphabétique de 2 à 63 caractères.
-- **Exemples positifs** : `alice@example.com`, `b.b+filter@sub.example.org`, `r.rezaire@gmail.com`.
+- **Exemples positifs** : `alice@example.com`, `b.b+filter@sub.example.org`, `contact@rezdevops.com`.
 - **Exemples négatifs** : `https://example.com/contact` (pas de `@`), `alice@x.f` (TLD < 2 lettres), `@example.com` (local-part vide).
 - **Faux positifs connus** : URLs contenant un `@` (rares) — assumé.
 - **Edge cases** : pas de support des adresses entre guillemets (`"alice"@example.com`), pas de support des IP littérales (`alice@[192.0.2.1]`).

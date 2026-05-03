@@ -4,7 +4,7 @@
   "private": true,
   "description": "Monorepo pii-scanner-web : détecteurs (lib pure), engine (orchestration), application Angular.",
   "license": "AGPL-3.0-only",
-  "author": "Rudy Rezaire <r.rezaire@gmail.com> (RezDevOps)",
+  "author": "Rudy Rezaire <contact@rezdevops.com> (RezDevOps)",
   "homepage": "https://github.com/RezDevOps/pii-scanner-web",
   "repository": {
     "type": "git",
