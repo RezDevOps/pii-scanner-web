@@ -75,17 +75,17 @@ Hébergée sur GitHub Pages. Statique, aucun backend.
 Multi-arch (`linux/amd64` + `linux/arm64`), tourne en `nginx-unprivileged` sur le port 8080.
 
 ```bash
-docker pull ghcr.io/rezdevops/pii-scanner-web:1.0.0   # version épinglée
+docker pull ghcr.io/rezdevops/pii-scanner-web:1.0.4   # version épinglée
 docker pull ghcr.io/rezdevops/pii-scanner-web:latest  # rolling
 
-docker run --rm -p 8080:8080 ghcr.io/rezdevops/pii-scanner-web:1.0.0
+docker run --rm -p 8080:8080 ghcr.io/rezdevops/pii-scanner-web:1.0.4
 # → http://localhost:8080
 ```
 
 Vérifier la signature de l'image :
 
 ```bash
-cosign verify ghcr.io/rezdevops/pii-scanner-web:1.0.0 \
+cosign verify ghcr.io/rezdevops/pii-scanner-web:1.0.4 \
   --certificate-identity-regexp 'https://github.com/RezDevOps/pii-scanner-web/.github/workflows/release.yml@refs/tags/v.+' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
@@ -96,11 +96,11 @@ Téléchargeable depuis la [page Releases GitHub](https://github.com/RezDevOps/p
 
 ```bash
 cosign verify-blob \
-  --certificate pii-scanner-web-v1.0.0-standalone.zip.pem \
-  --signature   pii-scanner-web-v1.0.0-standalone.zip.sig \
+  --certificate pii-scanner-web-v1.0.4-standalone.zip.pem \
+  --signature   pii-scanner-web-v1.0.4-standalone.zip.sig \
   --certificate-identity-regexp 'https://github.com/RezDevOps/pii-scanner-web/.github/workflows/release.yml@refs/tags/v.+' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  pii-scanner-web-v1.0.0-standalone.zip
+  pii-scanner-web-v1.0.4-standalone.zip
 ```
 
 ### Packages npm
