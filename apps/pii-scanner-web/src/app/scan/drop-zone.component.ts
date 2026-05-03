@@ -38,10 +38,15 @@ import {
   ACCEPTED_EXTENSIONS,
   DEFAULT_MAX_TOTAL_BYTES,
   validateFiles,
+  type ExistingFileRef,
   type RejectedFile,
 } from "./drop-zone.utils";
 
-export type { RejectedFile, RejectionReason } from "./drop-zone.utils";
+export type {
+  ExistingFileRef,
+  RejectedFile,
+  RejectionReason,
+} from "./drop-zone.utils";
 export { ACCEPTED_EXTENSIONS, DEFAULT_MAX_TOTAL_BYTES, validateFiles };
 
 @Component({
@@ -170,6 +175,14 @@ export class DropZoneComponent {
   /** Plafond cumulé en octets. Défaut 100 Mo. */
   @Input() maxTotalBytes: number = DEFAULT_MAX_TOTAL_BYTES;
 
+  /**
+   * Liste des fichiers déjà dans la file (côté parent). Permet à
+   * `validateFiles` de rejeter les doublons (`name` + `size`) et de
+   * faire respecter le plafond cumulé global, qui inclut les fichiers
+   * déjà acceptés. Défaut : `[]` (aucun fichier déjà en file).
+   */
+  @Input() existingFiles: readonly ExistingFileRef[] = [];
+
   /** Émis quand au moins un fichier valide est déposé. */
   @Output() readonly filesAccepted = new EventEmitter<readonly File[]>();
 
@@ -246,7 +259,11 @@ export class DropZoneComponent {
   }
 
   private handleFiles(files: readonly File[]): void {
-    const { accepted, rejected } = validateFiles(files, this.maxTotalBytes);
+    const { accepted, rejected } = validateFiles(
+      files,
+      this.maxTotalBytes,
+      this.existingFiles,
+    );
     if (rejected.length > 0) {
       this.filesRejected.emit(rejected);
     }

@@ -38,7 +38,11 @@ export const ACCEPTED_EXTENSIONS = Object.freeze([
  */
 export const DEFAULT_MAX_TOTAL_BYTES = 100 * 1024 * 1024;
 
-export type RejectionReason = "extension" | "size-exceeded" | "empty";
+export type RejectionReason =
+  | "extension"
+  | "size-exceeded"
+  | "empty"
+  | "duplicate";
 
 export interface RejectedFile {
   readonly name: string;
@@ -52,17 +56,45 @@ export interface ValidationResult {
 }
 
 /**
+ * Identité minimale d'un fichier déjà présent dans la file. On compare
+ * sur `name` + `size` car v1.1 conserve la sémantique « déposer le même
+ * fichier deux fois = doublon » (le drag&drop incrémental cumule la
+ * file ; sans dédup on ré-injecterait le fichier en doublon dans le
+ * rapport). On n'utilise pas `lastModified` parce que le `File` issu
+ * d'un drop ne le porte pas toujours de manière fiable.
+ */
+export interface ExistingFileRef {
+  readonly name: string;
+  readonly size: number;
+}
+
+/**
  * Filtre la liste de fichiers : extensions reconnues, taille non nulle,
- * cumul ≤ `maxTotalBytes`. Retourne les listes acceptés/rejetés en
- * deux temps pour permettre à l'UI de surfaces les rejets (toast).
+ * cumul ≤ `maxTotalBytes`, pas déjà présent dans `existingFiles`.
+ * Retourne les listes acceptés/rejetés en deux temps pour permettre à
+ * l'UI de surfacer les rejets (toast).
+ *
+ * Le plafond cumulé inclut la taille des fichiers déjà en file : un 2e
+ * dépôt ne pourra pas faire dépasser la limite globale. Sans cela, on
+ * pourrait contourner la limite par dépôts successifs.
  */
 export function validateFiles(
   files: readonly File[],
   maxTotalBytes: number,
+  existingFiles: readonly ExistingFileRef[] = [],
 ): ValidationResult {
   const accepted: File[] = [];
   const rejected: RejectedFile[] = [];
-  let cumulative = 0;
+
+  // Set des doublons : clé `name|size` (ASCII safe, pas de collision
+  // probable sur des noms réels).
+  const existingKeys = new Set<string>(
+    existingFiles.map((e) => `${e.name}|${e.size}`),
+  );
+
+  // Cumul initialisé sur la taille des fichiers déjà acceptés en file —
+  // garantit que le plafond global tient sur l'ensemble cumulatif.
+  let cumulative = existingFiles.reduce((acc, e) => acc + e.size, 0);
 
   for (const file of files) {
     if (file.size === 0) {
@@ -76,6 +108,15 @@ export function validateFiles(
       rejected.push({ name: file.name, size: file.size, reason: "extension" });
       continue;
     }
+    const key = `${file.name}|${file.size}`;
+    if (existingKeys.has(key)) {
+      rejected.push({
+        name: file.name,
+        size: file.size,
+        reason: "duplicate",
+      });
+      continue;
+    }
     if (cumulative + file.size > maxTotalBytes) {
       rejected.push({
         name: file.name,
@@ -85,6 +126,7 @@ export function validateFiles(
       continue;
     }
     cumulative += file.size;
+    existingKeys.add(key); // évite qu'un même drop contienne deux fois le même fichier
     accepted.push(file);
   }
   return { accepted, rejected };

@@ -19,7 +19,7 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
-**v1.0.5 — restitution des icônes Material en SVG inline souverains.** Sprint S5.5. Les `<mat-icon>` du drop-zone, de la file de scan et des boutons d'export rendaient leur **nom textuel** (`cloud_upload`, `check_circle`, `error`, `code`, `article`, `html`, `schedule`, `autorenew`) au lieu du glyphe : la police « Material Icons » n'était pas chargée et la CSP `connect-src 'none'` interdisait le fallback Google Fonts par construction. Les 8 SVG Material Symbols Outlined (Apache 2.0) sont désormais embarqués **inline** dans `src/app/icons/icon-registry.ts` et enregistrés au bootstrap via `MatIconRegistry.addSvgIconLiteral()` — zéro requête réseau, CSP intacte, attribution en `NOTICE`. Copies versionnées également dans `apps/pii-scanner-web/public/icons/` à des fins d'audit humain (les fichiers servis statiquement ne sont pas chargés au runtime). Commentaire CSP de `index.html` mis à jour pour refléter la réalité (plus de fonts packagées, plus de Google Fonts, SVG inline). Aucun changement fonctionnel : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`.
+**v1.1.0 — drag & drop incrémental + détection des doublons.** Sprint S6.1. Première feature UX depuis `v1.0.0`. Avant ce sprint, un nouveau dépôt **remplaçait** la file de scan : impossible d'ajouter un second lot sans perdre les findings du premier. Désormais, un nouveau drop (drag&drop ou picker) **ajoute** ses fichiers à la suite, le rapport global agrège l'historique des deux lots, et les doublons (`name` + `size` identiques) sont rejetés avec un libellé snackbar « déjà dans la file ». Le bouton « Réinitialiser » reste le seul moyen de repartir d'une file vide. Le plafond cumulé de 100 Mo s'applique désormais à l'ensemble file actuelle + nouveau dépôt (un 2ᵉ drop ne peut plus contourner la limite par accumulation). Aucun changement côté détecteurs ni parseurs : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`. CSP intacte, aucune nouvelle dépendance.
 
 | Jalon                                                                      | Statut   | Sortie                |
 | -------------------------------------------------------------------------- | -------- | --------------------- |
@@ -35,7 +35,8 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 | S5.2 — Hotfix CI SBOM (cyclonedx-npm → cdxgen, compat pnpm)                | ✅ livré | tag `v1.0.2`          |
 | S5.3 — Hotfix Docker multi-arch (Dockerfile mono-stage, plus de QEMU)      | ✅ livré | tag `v1.0.3`          |
 | S5.4 — Hotfix cosign image name (lowercase OCI imposé par spec)            | ✅ livré | tag `v1.0.4`          |
-| S5.5 — Restitution des icônes Material (SVG inline souverains)             | ✅ livré | **tag `v1.0.5`**      |
+| S5.5 — Restitution des icônes Material (SVG inline souverains)             | ✅ livré | tag `v1.1.0`          |
+| S6.1 — Drag & drop incrémental + détection des doublons                    | ✅ livré | **tag `v1.1.0`**      |
 
 ## Promesse
 
@@ -76,17 +77,17 @@ Hébergée sur GitHub Pages. Statique, aucun backend.
 Multi-arch (`linux/amd64` + `linux/arm64`), tourne en `nginx-unprivileged` sur le port 8080.
 
 ```bash
-docker pull ghcr.io/rezdevops/pii-scanner-web:1.0.5   # version épinglée
+docker pull ghcr.io/rezdevops/pii-scanner-web:1.1.0   # version épinglée
 docker pull ghcr.io/rezdevops/pii-scanner-web:latest  # rolling
 
-docker run --rm -p 8080:8080 ghcr.io/rezdevops/pii-scanner-web:1.0.5
+docker run --rm -p 8080:8080 ghcr.io/rezdevops/pii-scanner-web:1.1.0
 # → http://localhost:8080
 ```
 
 Vérifier la signature de l'image :
 
 ```bash
-cosign verify ghcr.io/rezdevops/pii-scanner-web:1.0.5 \
+cosign verify ghcr.io/rezdevops/pii-scanner-web:1.1.0 \
   --certificate-identity-regexp 'https://github.com/RezDevOps/pii-scanner-web/.github/workflows/release.yml@refs/tags/v.+' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
@@ -97,11 +98,11 @@ Téléchargeable depuis la [page Releases GitHub](https://github.com/RezDevOps/p
 
 ```bash
 cosign verify-blob \
-  --certificate pii-scanner-web-v1.0.5-standalone.zip.pem \
-  --signature   pii-scanner-web-v1.0.5-standalone.zip.sig \
+  --certificate pii-scanner-web-v1.1.0-standalone.zip.pem \
+  --signature   pii-scanner-web-v1.1.0-standalone.zip.sig \
   --certificate-identity-regexp 'https://github.com/RezDevOps/pii-scanner-web/.github/workflows/release.yml@refs/tags/v.+' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  pii-scanner-web-v1.0.5-standalone.zip
+  pii-scanner-web-v1.1.0-standalone.zip
 ```
 
 ### Packages npm

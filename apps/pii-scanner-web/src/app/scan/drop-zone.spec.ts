@@ -80,4 +80,55 @@ describe("validateFiles", () => {
       expect(accepted, `Extension ${ext} acceptée`).toHaveLength(1);
     }
   });
+
+  // -----------------------------------------------------------------
+  // v1.1 — drop incrémental : `existingFiles` permet de rejeter les
+  // doublons (name+size) et d'inclure le déjà-en-file dans le cumul.
+  // -----------------------------------------------------------------
+  it("rejette les fichiers déjà présents dans la file (doublon name+size)", () => {
+    const file = makeFile("clients.csv", 1024);
+    const { accepted, rejected } = validateFiles(
+      [file],
+      DEFAULT_MAX_TOTAL_BYTES,
+      [{ name: "clients.csv", size: 1024 }],
+    );
+    expect(accepted).toHaveLength(0);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toBe("duplicate");
+  });
+
+  it("accepte un fichier au même nom mais de taille différente (pas un doublon)", () => {
+    const file = makeFile("clients.csv", 2048);
+    const { accepted, rejected } = validateFiles(
+      [file],
+      DEFAULT_MAX_TOTAL_BYTES,
+      [{ name: "clients.csv", size: 1024 }],
+    );
+    expect(accepted).toHaveLength(1);
+    expect(rejected).toHaveLength(0);
+  });
+
+  it("rejette un doublon présent deux fois dans le même dépôt", () => {
+    const a = makeFile("dup.csv", 100);
+    const b = makeFile("dup.csv", 100);
+    const { accepted, rejected } = validateFiles(
+      [a, b],
+      DEFAULT_MAX_TOTAL_BYTES,
+    );
+    expect(accepted).toHaveLength(1);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toBe("duplicate");
+  });
+
+  it("inclut la taille des fichiers déjà en file dans le plafond cumulé", () => {
+    const newFile = makeFile("nouveau.csv", 10);
+    // Plafond 12, déjà 8 octets en file → on a 4 octets dispo, le
+    // nouveau de 10 doit être rejeté en size-exceeded.
+    const { accepted, rejected } = validateFiles([newFile], 12, [
+      { name: "ancien.csv", size: 8 },
+    ]);
+    expect(accepted).toHaveLength(0);
+    expect(rejected).toHaveLength(1);
+    expect(rejected[0]?.reason).toBe("size-exceeded");
+  });
 });

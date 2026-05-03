@@ -2,6 +2,33 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.1.0] — 2026-05-03
+
+Sprint S6.1 — **drag & drop incrémental + détection des doublons**. Première feature UX depuis `v1.0.0`. Avant ce sprint, chaque dépôt de fichier(s) **remplaçait** la file de scan : impossible d'ajouter un second lot sans perdre les findings du premier. Désormais, un nouveau drop (drag&drop ou picker) **ajoute** ses fichiers à la suite, le rapport global agrège l'historique, et les doublons (`name` + `size` identiques) sont rejetés avec un libellé explicite. Le bouton « Réinitialiser » reste le seul moyen de repartir d'une file vide. Aucun changement côté détecteurs ni parseurs : 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.0.5`.
+
+### Ajouts
+
+- **`apps/pii-scanner-web/src/app/scan/drop-zone.utils.ts`** — nouveau type `RejectionReason` `"duplicate"`, nouvelle interface `ExistingFileRef` (`name` + `size`), signature de `validateFiles` enrichie d'un 3ᵉ paramètre `existingFiles?: readonly ExistingFileRef[] = []`. La fonction reste pure : la dédup est faite via un `Set<string>` de clés `name|size`, et le plafond cumulé global inclut désormais la taille des fichiers déjà en file (un 2ᵉ dépôt ne peut plus contourner la limite par accumulation). Choix `name+size` plutôt que `lastModified` parce que ce dernier n'est pas toujours fiable sur les fichiers issus d'un drag&drop.
+- **`apps/pii-scanner-web/src/app/scan/drop-zone.component.ts`** — nouveau `@Input() existingFiles: readonly ExistingFileRef[] = []`, transmis tel quel à `validateFiles`. Le composant ne connaît rien du `ScanService` (toujours pur sur ses entrées/sorties) : c'est l'app qui projette `queueSig()` vers `existingFilesSig` et le bind sur l'input.
+- **`apps/pii-scanner-web/src/app/app.component.ts`** — nouveau `computed()` `existingFilesSig` qui projette la file (`queueSig()`) vers la forme `{name, size}[]` attendue par la drop-zone. Référence stable tant que la file ne change pas (compatible `OnPush`). Nouveau cas `"duplicate"` dans `rejectionLabel()` → libellé snackbar « déjà dans la file ».
+- **Tests `drop-zone.spec.ts`** — 4 nouveaux tests : doublon `name+size` rejeté, même nom mais taille différente accepté (pas un doublon), doublon présent deux fois dans le même dépôt rejeté, plafond cumulé global respecté quand des fichiers sont déjà en file.
+- **Tests `scan.service.spec.ts`** — 3 nouveaux tests : 2ᵉ appel à `scan()` ajoute à la file (pas de remplacement), rapport global agrège l'historique des deux lots, `reset()` purge bien l'historique cumulé.
+
+### Modifications
+
+- **`apps/pii-scanner-web/src/app/scan/scan.service.ts`** — `scan(files)` calcule un `offset = _queue().length` au démarrage, ajoute les nouvelles entrées via `_queue.update(prev => [...prev, ...additions])` au lieu de `_queue.set(initial)`. Les évènements `runScanStream` arrivent avec un `fileIndex` relatif au lot courant ; `applyEvent` reçoit l'`offset` pour cibler la bonne entrée dans la file globale. Nouveau champ privé `completedHistory: FileScanResult[]` qui accumule les résultats de tous les lots depuis le dernier `reset()` ; le `ScanReport` final est reconstruit à partir de `completedHistory.slice()`. `reset()` vide aussi `completedHistory`.
+- **`packages/pii-detectors/package.json`** — bumpé `1.0.5` → `1.1.0`.
+- **`packages/pii-scanner-engine/package.json`** — bumpé `1.0.5` → `1.1.0`.
+- **`apps/pii-scanner-web/package.json`** — bumpé `1.0.5` → `1.1.0`.
+- **Constantes `DETECTORS_VERSION` (`pii-detectors/src/index.ts`) et `ENGINE_VERSION` (`pii-scanner-engine/src/version.ts`)** alignées à `1.1.0`.
+- **`README.md` — bloc « Statut »** : nouvelle puce « v1.1.0 » expliquant le sprint, ligne « S6.1 » ajoutée à la table roadmap, exemples de commandes (`docker pull`, `docker run`, `cosign verify`, `cosign verify-blob`) bumpés à `1.1.0`.
+
+### Notes
+
+- **Lockfile non régénéré.** Aucune dépendance externe modifiée. Les workspaces internes sont référencés en `link:` dans `pnpm-lock.yaml` (pas d'entrée versionnée), donc le bump des manifests n'a aucun impact sur le lockfile. Différent du sprint `v1.0.4` où une dépendance interne avait nécessité une régénération.
+- **CSP intacte.** Cette feature est purement côté state Angular ; aucune nouvelle dépendance, aucun appel réseau, aucun changement de `Content-Security-Policy`. La promesse souveraineté reste tenue à l'identique.
+- **API publique inchangée pour les packages npm.** `@rezdevops/pii-detectors` et `@rezdevops/pii-scanner-engine` ne reçoivent aucune modification d'API ni de comportement. Le bump à `1.1.0` est uniquement un alignement monorepo (cohérent avec les sprints précédents). Les consommateurs externes peuvent migrer sans aucune adaptation.
+
 ## [1.0.5] — 2026-05-03
 
 Sprint S5.5 — **restitution des icônes Material en SVG inline souverains**. Aucun changement fonctionnel : 12 détecteurs, 10 formats et 4 exports strictement identiques à `v1.0.4`. Cette release répare un défaut visuel introduit pendant le durcissement souveraineté : les `<mat-icon>` rendaient leur nom textuel à la place du glyphe parce que la police « Material Icons » n'était pas chargée et que la CSP `connect-src 'none'` interdit par construction le fallback Google Fonts. Les 8 icônes utilisées sont désormais embarquées en SVG inline dans le code source de l'app, enregistrées au bootstrap via `MatIconRegistry.addSvgIconLiteral()`, sans aucune requête réseau ni concession sur la CSP.

@@ -90,4 +90,54 @@ describe("ScanService", () => {
     expect(service.queue()).toEqual([]);
     expect(service.report()).toBeNull();
   });
+
+  // ----------------------------------------------------------------
+  // v1.1 — drag & drop incrémental : un 2e appel à scan() ajoute à
+  // la file (pas de remplacement) et le rapport agrège l'historique
+  // complet. Voir scan.service.ts (offset + completedHistory).
+  // ----------------------------------------------------------------
+  it("ajoute les fichiers à la file lors d'un 2e scan (incrémental)", async () => {
+    const a = makeFile("a.txt", "alice@example.com\n");
+    const b = makeFile("b.txt", "bob@example.com\n");
+    const c = makeFile("c.txt", "carol@example.com\n");
+
+    await service.scan([a]);
+    expect(service.queue()).toHaveLength(1);
+    expect(service.queue()[0]?.fileName).toBe("a.txt");
+
+    await service.scan([b, c]);
+    const queue = service.queue();
+    expect(queue).toHaveLength(3);
+    expect(queue.map((e) => e.fileName)).toEqual(["a.txt", "b.txt", "c.txt"]);
+    expect(queue.every((e) => e.status === "completed")).toBe(true);
+  });
+
+  it("agrège l'historique des findings dans le rapport global", async () => {
+    const a = makeFile("a.txt", "alice@example.com\n");
+    const b = makeFile("b.txt", "bob@example.com\n");
+
+    await service.scan([a]);
+    const report2 = await service.scan([b]);
+
+    expect(report2.files).toHaveLength(2);
+    expect(report2.files.map((f) => f.fileName)).toEqual(["a.txt", "b.txt"]);
+    // Les findings du rapport global incluent ceux des deux lots.
+    const fileNames = service.findings().map((f) => f.fileName);
+    expect(fileNames).toContain("a.txt");
+    expect(fileNames).toContain("b.txt");
+  });
+
+  it("reset() purge aussi l'historique cumulé du mode incrémental", async () => {
+    const a = makeFile("a.txt", "alice@example.com\n");
+    const b = makeFile("b.txt", "bob@example.com\n");
+
+    await service.scan([a]);
+    service.reset();
+    const report = await service.scan([b]);
+
+    // Après reset, le rapport ne doit contenir QUE le 2e lot, pas
+    // l'historique d'avant le reset.
+    expect(report.files).toHaveLength(1);
+    expect(report.files[0]?.fileName).toBe("b.txt");
+  });
 });

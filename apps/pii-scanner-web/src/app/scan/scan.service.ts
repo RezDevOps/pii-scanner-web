@@ -95,6 +95,14 @@ export class ScanService implements OnDestroy {
   private readonly _isScanning = signal(false);
   private readonly _report = signal<ScanReport | null>(null);
 
+  /**
+   * Historique cumulé des `FileScanResult` complétés depuis le dernier
+   * `reset()`. Permet à `scan(files)` d'être appelé plusieurs fois en
+   * mode incrémental (drop d'un nouveau lot) tout en reconstruisant un
+   * rapport global. v1.1.
+   */
+  private completedHistory: FileScanResult[] = [];
+
   /** File des fichiers (état évolutif au fil des évènements). */
   readonly queue: Signal<readonly FileQueueEntry[]> = this._queue.asReadonly();
 
@@ -148,10 +156,17 @@ export class ScanService implements OnDestroy {
    * Lance un scan sur la liste de fichiers fournie. Retourne le
    * `ScanReport` final (résolu après le dernier évènement).
    *
+   * **v1.1 — mode incrémental** : si la file contient déjà des
+   * fichiers, les nouveaux sont **ajoutés** à la suite (pas de
+   * remplacement). Le rapport renvoyé agrège l'historique complet
+   * (anciens lots + nouveaux). Pour repartir de zéro, appeler
+   * `reset()` au préalable.
+   *
    * Met à jour les signals `queue` / `isScanning` / `report` au fil de
    * l'exécution. Si un scan est déjà en cours, lève une erreur (un
-   * service = un scan à la fois ; pour scanner plusieurs lots en
-   * parallèle, créer plusieurs services — pas le cas en S3).
+   * service = un scan à la fois). La dédup `name`+`size` est faite
+   * **côté UI** par `validateFiles` ; le service fait confiance au
+   * caller (l'app passe `existingFiles` à la drop-zone).
    */
   async scan(files: readonly File[]): Promise<ScanReport> {
     if (this._isScanning()) {
@@ -162,33 +177,40 @@ export class ScanService implements OnDestroy {
     }
 
     this._isScanning.set(true);
-    this._report.set(null);
 
-    // Initialise la file avec tous les fichiers en `pending`.
-    const initial: FileQueueEntry[] = files.map((file, idx) => ({
-      id: `${idx}-${file.name}`,
+    // Offset = nombre d'entrées déjà présentes dans la file. Les
+    // évènements `runScanStream` arrivent avec `fileIndex` 0..N-1
+    // **relatifs au lot courant** ; on les décale pour viser le bon
+    // index dans la file globale (anciens + nouveaux).
+    const offset = this._queue().length;
+
+    // Append des nouveaux fichiers en `pending` à la suite de la file.
+    const additions: FileQueueEntry[] = files.map((file, idx) => ({
+      id: `${offset + idx}-${file.name}`,
       fileName: file.name,
       size: file.size,
       status: "pending" as const,
     }));
-    this._queue.set(initial);
+    this._queue.update((prev) => [...prev, ...additions]);
 
     const runner = this.ensureRunner();
     const inputs: readonly ScanInputFile[] = files;
-    const completed: FileScanResult[] = [];
+    const completedThisRun: FileScanResult[] = [];
 
     try {
       for await (const event of runScanStream(inputs, { runner })) {
-        this.applyEvent(event);
+        this.applyEvent(event, offset);
         if (event.type === "file-completed") {
-          completed.push(event.result);
+          completedThisRun.push(event.result);
         }
       }
+      // Agrège ce lot dans l'historique cumulé du service.
+      this.completedHistory.push(...completedThisRun);
       const report: ScanReport = {
         id: cryptoRandomId(),
         generatedAt: new Date().toISOString(),
         engineVersion: ENGINE_VERSION_HINT,
-        files: completed,
+        files: this.completedHistory.slice(),
       };
       this._report.set(report);
       return report;
@@ -198,12 +220,14 @@ export class ScanService implements OnDestroy {
   }
 
   /**
-   * Réinitialise l'état (file + rapport). Le runner reste vivant pour
-   * éviter de payer le coût de relance des Workers.
+   * Réinitialise l'état (file + rapport + historique cumulé). Le
+   * runner reste vivant pour éviter de payer le coût de relance des
+   * Workers.
    */
   reset(): void {
     this._queue.set([]);
     this._report.set(null);
+    this.completedHistory = [];
   }
 
   ngOnDestroy(): void {
@@ -234,10 +258,16 @@ export class ScanService implements OnDestroy {
     return this.runner;
   }
 
-  private applyEvent(event: ScanProgress): void {
+  /**
+   * Applique un évènement `ScanProgress` à la file en tenant compte
+   * de l'offset (drops successifs). Les évènements arrivent avec un
+   * `fileIndex` relatif au lot courant (0..N-1) ; on le décale pour
+   * cibler la bonne entrée dans la file globale.
+   */
+  private applyEvent(event: ScanProgress, offset: number): void {
     this._queue.update((current) => {
       const next = current.slice();
-      const idx = event.fileIndex;
+      const idx = offset + event.fileIndex;
       const existing = next[idx];
       if (!existing) return current;
       switch (event.type) {

@@ -170,6 +170,7 @@ import { buildDetectorLabels } from "./scan/detector-labels";
         </p>
 
         <psw-drop-zone
+          [existingFiles]="existingFilesSig()"
           (filesAccepted)="onFilesAccepted($event)"
           (filesRejected)="onFilesRejected($event)"
         ></psw-drop-zone>
@@ -414,6 +415,16 @@ export class AppComponent {
   protected readonly reportSig = this.scanService.report;
   protected readonly findingsSig = this.scanService.findings;
 
+  /**
+   * Vue projetée de la file pour la drop-zone : seulement `name` + `size`,
+   * suffisant pour la dédup (cf. v1.1 — drop incrémental). Recalculé via
+   * `computed` pour stabiliser la référence tant que la file ne change
+   * pas (sinon `OnPush` ne détecterait pas l'absence de changement).
+   */
+  protected readonly existingFilesSig = computed(() =>
+    this.queueSig().map((e) => ({ name: e.fileName, size: e.size })),
+  );
+
   protected readonly canScan = computed(() => !this.isScanningSig());
 
   constructor() {
@@ -482,5 +493,7 @@ function rejectionLabel(reason: RejectedFile["reason"]): string {
       return "limite de taille atteinte";
     case "empty":
       return "fichier vide";
+    case "duplicate":
+      return "déjà dans la file";
   }
 }
