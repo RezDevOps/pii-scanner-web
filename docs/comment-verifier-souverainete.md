@@ -12,7 +12,7 @@ La promesse _« 100 % navigateur »_ est facile à écrire, difficile à tenir. 
 
 Choisissez l'un des trois points d'entrée :
 
-- la démo officielle `https://pii-scanner.rezdevops.fr` (servie statique, sans backend),
+- la démo officielle `https://pii-scanner.rezdevops.com` (servie statique, sans backend),
 - l'image Docker auto-hébergée `ghcr.io/rezdevops/pii-scanner-web` (nginx local),
 - l'archive ZIP standalone, dépaquetée puis ouverte en double-clic sur `index.html` (mode hors-ligne complet).
 

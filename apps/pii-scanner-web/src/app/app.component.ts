@@ -386,7 +386,7 @@ import { buildDetectorLabels } from "./scan/detector-labels";
             >AGPL-3.0</a
           >
           · Auteur Rudy Rezaire (<a
-            href="https://rezdevops.fr"
+            href="https://rezdevops.com"
             target="_blank"
             rel="noopener noreferrer"
             >RezDevOps</a

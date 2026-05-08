@@ -196,7 +196,7 @@ Sprint S5 — **release pipeline + landing + page vérifier publique**. Premier 
 
 ### Notes
 
-- **Le sous-domaine `pii-scanner.rezdevops.fr` est reporté en `v1.1`.** La démo officielle `v1.0` reste sur l'URL GitHub Pages par défaut `rezdevops.github.io/pii-scanner-web` (zéro DNS, zéro charge ops). La bascule sera transparente côté SEO grâce au champ `homepage` du `package.json` qui restera la source de vérité.
+- **Le sous-domaine `pii-scanner.rezdevops.com` est reporté en `v1.1`.** La démo officielle `v1.0` reste sur l'URL GitHub Pages par défaut `rezdevops.github.io/pii-scanner-web` (zéro DNS, zéro charge ops). La bascule sera transparente côté SEO grâce au champ `homepage` du `package.json` qui restera la source de vérité.
 - **Bumps majeurs Angular 21 / Vitest 4 / TS 6** : volontairement reportés en `v1.1`. Le cadrage § 11 fixe Angular 20 pour la v1.0 ; basculer en plein S5 aurait exigé une réécriture potentielle des templates Material M3 et étendu la charge S5 hors du cadrage 1,5 j-h.
 - **Première publication npm** : si la délégation `Trusted Publisher` côté `npm.com` n'est pas encore configurée pour les deux packages au moment du tag `v1.0.0`, le job `publish-npm` utilise un `NPM_TOKEN` classique (secret repo). À basculer en publisher OIDC dès que possible (zéro secret côté CI).
 - **Pages stable URL** : `https://rezdevops.github.io/pii-scanner-web/` ; page « vérifier » : `https://rezdevops.github.io/pii-scanner-web/verifier/`.
