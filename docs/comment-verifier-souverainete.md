@@ -42,15 +42,22 @@ Cliquer sur _Scanner_. La progression s'affiche en direct, le rapport est rendu 
 
 ### 5. Vérifier l'onglet Réseau
 
-**Aucune requête sortante ne doit apparaître pendant le scan.**
+**Aucune requête vers un domaine externe ne doit apparaître à aucun moment.**
 
 Plus précisément, vous ne devez voir aucune ligne avec :
 
-- une URL pointant vers un domaine externe au vôtre,
-- un type `fetch`, `xhr`, `websocket`, `eventsource` ou `beacon`,
-- un _initiator_ lié à la SPA pendant la phase de scan.
+- une URL pointant vers un domaine **autre que celui qui sert l'application** (au chargement initial comme pendant le scan),
+- un type `fetch`, `xhr`, `websocket`, `eventsource` ou `beacon` — la CSP `connect-src 'none'` les interdit techniquement, donc même un script malveillant injecté ne pourrait pas en émettre.
 
-Les seules requêtes acceptables sont celles du chargement initial de la page (HTML, JS, CSS, polices locales — toutes servies depuis le même domaine que l'application). Aucune ne doit apparaître après le clic _Scanner_.
+Les seules requêtes acceptables, **avant comme après le scan**, sont des chargements de code statique servis depuis l'origine de l'application :
+
+- au chargement initial : HTML, JS principal, CSS, SVG d'icônes Material inline (depuis `v1.0.5`) ;
+- au premier scan : le script du Web Worker (`scan-worker.<hash>.js`, depuis `v1.2.0`) ;
+- au premier scan d'un fichier binaire : le chunk du parseur correspondant lazy-loadé (`pdfjs-dist` pour les PDF, `mammoth` pour les .docx, `@e965/xlsx` pour les .xlsx, depuis `v0.4.1` — cf. ADR-0007).
+
+Tous ces chunks sont du **code statique signé sigstore**, identique pour tous les utilisateurs ; ils ne contiennent pas vos données. Régis par les directives CSP `script-src 'self'` et `worker-src 'self' blob:`, qui n'autorisent que l'origine de l'app, jamais un tiers.
+
+**Test renforcé** : dans DevTools → Network → colonne `Domain`, vérifier que **toutes** les lignes pointent vers `rezdevops.github.io` (mode démo), `localhost:8080` (mode Docker) ou n'apparaissent pas du tout (mode `file://` après le bootstrap initial). Aucune ligne ne doit jamais pointer vers un autre domaine.
 
 ## Vérification renforcée — bloquer le réseau au niveau navigateur
 
@@ -126,7 +133,7 @@ Le PDF.js est configuré explicitement pour la souveraineté :
 - `useSystemFonts: false` — pas d'accès au filesystem système pour les polices,
 - `workerSrc = ""` — pas de worker externe instancié par défaut, le rendu texte tourne en monothread interne.
 
-Vous pouvez vérifier dans DevTools (onglet Réseau) qu'aucune requête ne part lors du scan d'un .pdf, .xlsx, .docx ou .html. Si l'une apparaissait, ce serait un bug critique — voir _Si vous trouvez une fuite_ ci-dessous.
+Vous pouvez vérifier dans DevTools (onglet Réseau) qu'au scan d'un .pdf, .xlsx, .docx ou .html, **les seules requêtes émises sont des chunks JavaScript chargés depuis l'origine de l'application** (chargement lazy du parseur correspondant la première fois — cf. ADR-0007). Aucune requête ne part vers un domaine externe, à aucun moment. Si l'une apparaissait vers un tiers, ce serait un bug critique — voir _Si vous trouvez une fuite_ ci-dessous.
 
 Pas d'OCR : un PDF scanné (image dans la page) ne produit aucun texte et donc zéro finding, sans erreur. L'OCR via Tesseract.js est reporté à `v1.1` — il est lui aussi 100 % local quand il sera ajouté.
 

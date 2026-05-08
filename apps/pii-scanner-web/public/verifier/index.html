@@ -349,23 +349,47 @@
       <h3>5. Vérifier l'onglet Réseau</h3>
       <p>
         <strong
-          >Aucune requête sortante ne doit apparaître pendant le scan.</strong
+          >Aucune requête vers un domaine externe ne doit apparaître à aucun
+          moment.</strong
         >
       </p>
       <p>Plus précisément, vous ne devez voir aucune ligne avec :</p>
       <ul>
-        <li>une URL pointant vers un domaine externe au vôtre,</li>
+        <li>
+          une URL pointant vers un domaine
+          <strong>autre que celui qui sert l'application</strong> (au chargement
+          initial comme pendant le scan),
+        </li>
         <li>
           un type <code>fetch</code>, <code>xhr</code>, <code>websocket</code>,
-          <code>eventsource</code> ou <code>beacon</code>,
+          <code>eventsource</code> ou <code>beacon</code> — la CSP
+          <code>connect-src 'none'</code> les interdit techniquement.
         </li>
-        <li><em>initiator</em> lié à la SPA pendant la phase de scan.</li>
       </ul>
       <p>
-        Les seules requêtes acceptables sont celles du chargement initial de la
-        page (HTML, JS, CSS, polices locales — toutes servies depuis le même
-        domaine que l'application). Aucune ne doit apparaître après le clic
-        <em>Scanner</em>.
+        Les seules requêtes acceptables,
+        <strong>avant comme après le scan</strong>, sont des chargements de code
+        statique servis depuis l'origine de l'application : HTML, JS principal,
+        CSS et SVG d'icônes au bootstrap ; le script du Web Worker
+        (<code>scan-worker.&lt;hash&gt;.js</code>, depuis <code>v1.2.0</code>)
+        au premier scan ; et le chunk du parseur correspondant (<code
+          >pdfjs-dist</code
+        >
+        pour les PDF, <code>mammoth</code> pour les .docx,
+        <code>@e965/xlsx</code> pour les .xlsx, depuis <code>v0.4.1</code>) au
+        premier scan d'un fichier binaire de ce format. Tous ces chunks sont du
+        code statique signé sigstore, identique pour tous les utilisateurs.
+        Régis par les directives CSP <code>script-src 'self'</code> et
+        <code>worker-src 'self' blob:</code> qui n'autorisent que l'origine de
+        l'app.
+      </p>
+      <p>
+        <strong>Test renforcé</strong> : dans DevTools → Network → colonne
+        <code>Domain</code>, vérifier que <strong>toutes</strong> les lignes
+        pointent vers <code>rezdevops.github.io</code> (mode démo),
+        <code>localhost:8080</code> (mode Docker) ou n'apparaissent pas du tout
+        (mode <code>file://</code> après bootstrap initial). Aucune ligne ne
+        doit jamais pointer vers un autre domaine.
       </p>
 
       <h2 id="renforce">

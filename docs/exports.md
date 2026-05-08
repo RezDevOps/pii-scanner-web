@@ -114,6 +114,6 @@ Le composant `psw-report` expose trois boutons (`JSON`, `Markdown`, `HTML autono
 - Création d'un `<a download="...">` invisible, click programmatique, retrait immédiat.
 - `URL.createObjectURL` + `URL.revokeObjectURL` pour libérer la mémoire.
 
-Le téléchargement reste **100 % local** : aucune requête réseau n'est émise. La promesse souveraineté du cadrage § 1.2 est tenue jusqu'au dernier acte.
+Le téléchargement reste **100 % local** : aucune requête vers un domaine externe n'est émise (le `Blob` est généré en mémoire et servi via `URL.createObjectURL`). La promesse souveraineté du cadrage § 1.2 est tenue jusqu'au dernier acte.
 
 Nom de fichier généré : `scan-<reportId>-<YYYYMMDD>-<HHmmss>.<ext>`. Le `reportId` est nettoyé (caractères ASCII alphanumériques + `-` + `_` uniquement) pour éviter tout caractère exotique dans le nom de fichier.

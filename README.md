@@ -9,13 +9,13 @@
 
 > Scanner local de données personnelles. Les fichiers ne quittent jamais votre navigateur.
 
-`pii-scanner-web` est une application web Angular qui détecte les données à caractère personnel (PII) dans des fichiers bureautiques courants — Excel, CSV, PDF, Word, JSON, HTML — et produit un rapport RGPD lisible en quelques secondes. **Le traitement est intégralement local au navigateur** : aucun octet n'est envoyé sur le réseau, et la propriété est vérifiable en direct (Content Security Policy stricte, DevTools = zéro requête sortante).
+`pii-scanner-web` est une application web Angular qui détecte les données à caractère personnel (PII) dans des fichiers bureautiques courants — Excel, CSV, PDF, Word, JSON, HTML — et produit un rapport RGPD lisible en quelques secondes. **Le traitement est intégralement local au navigateur** : aucun octet de vos données n'est envoyé vers un serveur tiers, et la propriété est vérifiable en direct (Content Security Policy stricte avec `connect-src 'none'`, DevTools = aucune requête vers un domaine externe).
 
 C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), après [`fec-check`](https://github.com/RezDevOps/fec-check).
 
 ## Démo en ligne
 
-**[rezdevops.github.io/pii-scanner-web](https://rezdevops.github.io/pii-scanner-web/)** — déposez un fichier, ouvrez DevTools (F12) → onglet Réseau, observez : aucune requête sortante.
+**[rezdevops.github.io/pii-scanner-web](https://rezdevops.github.io/pii-scanner-web/)** — déposez un fichier, ouvrez DevTools (F12) → onglet Réseau, observez : toutes les requêtes pointent vers l'origine de l'app (chunks JS du worker et des parseurs binaires lazy-loadés depuis `rezdevops.github.io`), aucune ne va vers un domaine tiers. La CSP `connect-src 'none'` interdit techniquement tout `fetch`, `XHR`, `WebSocket` au runtime — vos données ne peuvent pas sortir, par construction.
 
 ## Statut
 
@@ -120,7 +120,7 @@ Les deux packages sont publiés avec `provenance: true` (signature OIDC `sigstor
 
 Le fichier [`docs/comment-verifier-souverainete.md`](docs/comment-verifier-souverainete.md) détaille le mode opératoire pas à pas. Il est aussi servi en ligne sous [`/verifier/`](https://rezdevops.github.io/pii-scanner-web/verifier/) (page autonome, hors SPA).
 
-En une phrase : ouvrir DevTools (onglet Réseau), déposer un fichier, lancer le scan, constater zéro requête sortante. Tout le code est auditable, la CSP est lisible dans `index.html`, le résultat est reproductible en moins d'une minute.
+En une phrase : ouvrir DevTools (onglet Réseau), déposer un fichier, lancer le scan, constater que toutes les requêtes pointent vers l'origine de l'app (chunks JS chargés localement) et qu'aucune ne va vers un domaine tiers. Tout le code est auditable, la CSP avec `connect-src 'none'` est lisible dans `index.html`, le résultat est reproductible en moins d'une minute.
 
 ## Sécurité
 

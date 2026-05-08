@@ -113,7 +113,7 @@ import { buildDetectorLabels } from "./scan/detector-labels";
           </a>
         </div>
         <ul class="hero-bullets" aria-label="Garanties principales">
-          <li>Zéro upload, zéro requête réseau au runtime</li>
+          <li>Zéro upload, aucune requête vers un serveur tiers</li>
           <li>Détection déterministe, pas d'IA générative</li>
           <li>12 détecteurs FR (5 avec validation par checksum)</li>
           <li>Code public, signé sigstore, SBOM publié</li>
@@ -166,8 +166,9 @@ import { buildDetectorLabels } from "./scan/detector-labels";
         <h2 id="demo-title">Démo en place</h2>
         <p class="demo-intro">
           Déposez un fichier ci-dessous. Vous pouvez ouvrir l'onglet Réseau de
-          vos outils développeur (F12) avant : aucune requête sortante ne
-          partira pendant le scan.
+          vos outils développeur (F12) avant : toutes les requêtes que vous
+          verrez pointent vers l'origine de cette app (chunks JavaScript chargés
+          localement), aucune ne partira vers un domaine tiers.
         </p>
 
         <psw-drop-zone
@@ -214,8 +215,8 @@ import { buildDetectorLabels } from "./scan/detector-labels";
         <p>
           Pas de claim sans démonstration. Cette application sert exactement ce
           qu'elle dit : aucun fichier ne quitte votre poste, et aucune requête
-          réseau n'est émise pendant le scan. Vous pouvez le confirmer en moins
-          d'une minute.
+          ne part vers un serveur tiers. Vous pouvez le confirmer en moins d'une
+          minute.
         </p>
         <ol class="verify-steps">
           <li>
@@ -224,12 +225,17 @@ import { buildDetectorLabels } from "./scan/detector-labels";
             <strong>Réseau</strong>, cochez « Conserver le journal ».
           </li>
           <li>
-            Rechargez la page (notez les requêtes initiales : tout est servi par
-            votre origine, aucune externe).
+            Rechargez la page (notez les requêtes initiales : toutes sont
+            servies par l'origine de cette app, aucune externe).
           </li>
           <li>
-            Déposez un fichier et lancez le scan. Observez l'onglet Réseau :
-            <strong>aucune ligne ne s'ajoute pendant le scan</strong>.
+            Déposez un fichier et lancez le scan. Observez l'onglet Réseau : les
+            seules nouvelles lignes pendant le scan sont des chunks JS chargés
+            depuis cette origine (script du Web Worker au 1<sup>er</sup> scan,
+            parseur lazy-loadé au 1<sup>er</sup> fichier d'un format binaire).
+            <strong>Aucune ligne ne pointe vers un domaine tiers</strong> ; la
+            CSP <code>connect-src 'none'</code> l'interdit techniquement par
+            construction.
           </li>
         </ol>
         <p class="sov-cta">

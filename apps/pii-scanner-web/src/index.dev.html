@@ -38,8 +38,10 @@
           puis ouvrir `apps/pii-scanner-web/dist/browser/index.html`
           en `file://` ou via `pnpm dlx http-server dist/browser -c-1`.
         - Le `index.html` de prod (avec `connect-src 'none'`) sera
-          alors actif, et la garantie « zéro requête sortante » est
-          vérifiable via DevTools.
+          alors actif, et la garantie « aucune requête vers un domaine
+          externe » est vérifiable via DevTools (les seules requêtes
+          Network sont des chunks JS chargés depuis l'origine de l'app :
+          script du Web Worker, parseurs binaires lazy-loadés, etc.).
     -->
     <meta
       http-equiv="Content-Security-Policy"

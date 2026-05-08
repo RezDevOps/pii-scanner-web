@@ -5,7 +5,8 @@
  *
  * La Content Security Policy de l'app (cf. `src/index.html`) durcit
  * `connect-src 'none'` pour matérialiser la promesse souveraineté
- * (« aucune requête réseau au runtime, observable dans l'onglet Réseau »).
+ * (aucun `fetch`/`XHR`/`WebSocket` runtime, donc aucune exfiltration de
+ * données possible, par construction).
  * Or `MatIconRegistry.addSvgIcon(url)` charge le SVG via `HttpClient` —
  * même vers la même origine, cette requête XHR est bloquée par
  * `connect-src 'none'`.
