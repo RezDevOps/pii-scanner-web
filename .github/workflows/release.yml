@@ -170,7 +170,11 @@ jobs:
             packages/pii-detectors/LICENSE
             packages/pii-scanner-engine/LICENSE
           retention-days: 7
-          if-no-files-found: warn
+          # `error` (durci v1.2) : si l'un des chemins ci-dessus est vide
+          # ou inexistant, le job échoue tôt plutôt que de laisser passer
+          # une release amputée d'un package npm. Audit S5 signalait ce
+          # `warn` comme dette résiduelle.
+          if-no-files-found: error
 
   # ---------------------------------------------------------------------------
   # 3. Archive ZIP standalone. Pré-condition : le dist a été buildé avec

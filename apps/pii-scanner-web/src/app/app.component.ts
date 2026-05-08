@@ -51,6 +51,7 @@ import {
 import { FileQueueComponent } from "./scan/file-queue.component";
 import { ReportComponent } from "./scan/report.component";
 import { ScanService } from "./scan/scan.service";
+import { createScanWorker } from "./scan/scan-worker.factory";
 import { buildDetectorLabels } from "./scan/detector-labels";
 
 @Component({
@@ -431,29 +432,21 @@ export class AppComponent {
     // PDF.js : pointe vers le worker embarqué côté assets de l'app.
     GlobalWorkerOptions.workerSrc = "pdf.worker.mjs";
 
-    // **v1.0** : pool de Web Workers volontairement désactivé. Le scan
-    // tourne intégralement sur le main thread via `MainThreadRunner` du
-    // `ScanService` (fallback automatique quand aucune `workerFactory`
-    // n'est configurée).
+    // **v1.2** : pool de Web Workers activé via le worker app-side
+    // (`./scan/worker/scan-worker.ts`). Esbuild Angular sait bundler
+    // `new Worker(new URL("./worker/scan-worker.ts", import.meta.url))`
+    // depuis un source TS de l'app, ce qui résout le bug v1.0 où le
+    // worker était livré dans le dist npm de l'engine et n'était pas
+    // re-bundlé proprement (cf. ADR-008).
     //
-    // Raison : le pattern `new Worker(new URL("./scan-worker.js",
-    // import.meta.url))` du `create-default-worker.js` situé dans le
-    // dist du package `@rezdevops/pii-scanner-engine` n'est pas
-    // re-bundlé proprement par les outils Angular 20 (esbuild en build
-    // prod ; Vite dep optimizer en dev). Symptômes :
-    //   - en dev : « scan-worker.js?worker_file&type=module not found
-    //     in vite/deps/ ».
-    //   - en prod : worker créé mais events qui n'arrivent jamais
-    //     (scan bloqué silencieusement).
+    // La logique de scan reste dans l'engine (`resolveDetectors`,
+    // `scanText`, `ScanWorkerApi`) ; seule l'enveloppe d'exposition
+    // Comlink vit côté app.
     //
-    // La promesse souveraineté reste **100 % tenue** (calcul local,
-    // zéro réseau, CSP stricte respectée) ; seule la parallélisation
-    // sur très gros fichiers est différée. Plan v1.1 : exposer le
-    // worker comme asset Angular côté app (et non depuis le package
-    // npm), avec un `new Worker(new URL("./scan-worker.ts",
-    // import.meta.url))` dans le code de l'app — Angular esbuild sait
-    // bundler ce pattern depuis le code source, pas depuis un dist
-    // compilé.
+    // Si `Worker` n'est pas dispo (SSR, certains tests Node), le
+    // `ScanService` retombe automatiquement sur `MainThreadRunner` —
+    // l'UI reste fonctionnelle, juste monothread.
+    this.scanService.configureWorkerFactory(createScanWorker);
   }
 
   protected onFilesAccepted(files: readonly File[]): void {

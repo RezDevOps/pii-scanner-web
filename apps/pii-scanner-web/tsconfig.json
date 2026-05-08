@@ -2,10 +2,10 @@
   "extends": "../../tsconfig.base.json",
   "compileOnSave": false,
   "compilerOptions": {
+    "esModuleInterop": true,
     "outDir": "./dist/out-tsc",
     "experimentalDecorators": true,
-    "moduleResolution": "Bundler",
-    "lib": ["ES2022", "DOM", "DOM.Iterable", "WebWorker"]
+    "moduleResolution": "bundler"
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

@@ -2,6 +2,53 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.2.0] — 2026-05-08
+
+Sprint S7 — **alignement stack Angular 21 (Data Context v0.6) + worker pool app-side réactivé + nettoyage dette CI résiduelle**. Trois chantiers livrés ensemble parce qu'ils sont co-dépendants côté validation utilisateur. Aucun changement côté détecteurs ni parseurs : 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.1.0`. La promesse souveraineté reste tenue à l'identique : calcul local, zéro réseau, CSP `connect-src 'none'` intacte.
+
+### Ajouts
+
+- **`apps/pii-scanner-web/src/app/scan/worker/scan-worker.ts`** — nouveau script Web Worker app-side. Importe `resolveDetectors`, `scanText` et le type `ScanWorkerApi` depuis la surface publique de `@rezdevops/pii-scanner-engine` ; expose l'API via Comlink. Logique de scan strictement identique au worker engine v1.1, seule l'enveloppe d'exposition vit côté app.
+- **`docs/adr/0008-worker-app-side.md`** — décision architecturale : le script worker vit côté app (et plus côté engine). Esbuild Angular sait bundler `new Worker(new URL("./worker/scan-worker.ts", import.meta.url))` depuis un source TS de l'app, ce qu'il ne savait pas faire depuis un dist npm pré-compilé. Résout le bug v1.0 où le pool était désactivé silencieusement.
+- **`docs/adr/0009-bump-angular-21.md`** — décision architecturale : bump de la stack front-end Angular 20 → 21.2.x, conjointement Vitest 3 → 4.1.5 et engine Node 20.10 → 20.19. Driver : Data Context v0.6 (alignement stack RezDevOps), trajectoire support actif vs LTS-only Angular, première application de la règle « fenêtre de migration tous les 12 mois ».
+- **`BOOTSTRAP.md`** à la racine — guide de configuration GitHub UI + outils locaux pour qu'un fork puisse exécuter le pipeline `release.yml` de bout en bout. Documente : pré-requis Node ≥ 20.19, secret `NPM_TOKEN`, environnement protégé `github-pages` avec règle Tag `v*`, permissions workflow par job, première release sur fork.
+- **Bloc `pnpm.overrides`** dans le `package.json` racine — nouvelles entrées `fast-uri: ">=3.1.2"` et `ip-address: ">=10.1.1"` pour patcher 3 CVE actives dans la toolchain Angular 21.2 (cf. ci-dessous).
+
+### Modifications
+
+- **`apps/pii-scanner-web/src/app/scan/scan-worker.factory.ts`** — la fabrique instancie désormais `new Worker(new URL("./worker/scan-worker.ts", import.meta.url), { type: "module" })` côté app au lieu de déléguer à `createDefaultScanWorker` de l'engine. Aucune régression côté contrat (le runner consomme toujours un `Worker` standard via Comlink).
+- **`apps/pii-scanner-web/src/app/app.component.ts`** — le constructeur appelle désormais `this.scanService.configureWorkerFactory(createScanWorker)`. Le commentaire « pool désactivé v1.0 » est remplacé par un commentaire qui pointe vers ADR-008. Le pool est actif par défaut sur tout scan ; fallback `MainThreadRunner` automatique si `Worker` n'est pas dispo (SSR, certains tests).
+- **`packages/pii-scanner-engine/src/worker/create-default-worker.ts`** — la fabrique est marquée **`@deprecated`** depuis v1.2.0. Conservée pour rétrocompatibilité avec les consommateurs npm v0.3.0 → v1.1.x ; à supprimer à la prochaine majeure (v2.0). La JSDoc documente le pattern recommandé (worker app-side) avec exemple complet.
+- **Stack Angular** : `@angular/core`, `@angular/animations`, `@angular/common`, `@angular/compiler`, `@angular/forms`, `@angular/platform-browser`, `@angular/platform-browser-dynamic`, `@angular/router` bumpés `^20.0.0` → `^21.2.12`. `@angular/cli`, `@angular/material`, `@angular/cdk`, `@angular-devkit/build-angular` bumpés `^20.0.0` → `^21.2.10`. `@angular/compiler-cli` bumpé `^20.0.0` → `^21.2.12`. Désalignement de patch (12 vs 10) normal — Angular core et CLI ont des cadences indépendantes.
+- **`vitest`** bumpé `^3.1.1` → `^4.1.5` (saut majeur). Migration sans ajustement de config (les tests utilisaient déjà des imports explicites depuis `"vitest"`).
+- **`happy-dom`** bumpé `^20.0.0` → `^20.9.0` dans l'app et l'engine (cohérence Vitest 4).
+- **`engines.node`** dans le `package.json` racine bumpé `>=20.10` → `>=20.19`. Imposé par `@angular-devkit/build-angular@21` (`^20.19.0 || ^22.12.0 || >=24.0.0`).
+- **`pnpm-lock.yaml`** régénéré (~200 lignes de diff, transitives Angular 21 + ajout overrides fast-uri / ip-address). Pas de saut de schema lockfile.
+- **`.github/workflows/release.yml`** ligne 173 : `if-no-files-found: warn` → `error` sur l'upload des artifacts npm. Audit S5 signalait ce `warn` comme dette résiduelle. Si l'un des chemins est vide ou inexistant, le job échoue tôt plutôt que de laisser passer une release amputée d'un package.
+- **`docs/adr/README.md`** — index étendu avec les entrées 0008 et 0009.
+
+### Sécurité
+
+Trois CVE supply-chain actives au 2026-05-08 dans la toolchain Angular 21.2.x — **toutes patchées** via le bloc `pnpm.overrides` :
+
+- **`fast-uri` (high, GHSA-q3j6-qgpj-74h6)** — path traversal via percent-encoded dot segments. Vulnérabilité dans `<=3.1.0`. Path : `@angular-devkit/build-angular@21.2.10 > @angular-devkit/architect > @angular-devkit/core > ajv@8.18.0 > fast-uri@3.1.0`. Override `fast-uri: ">=3.1.2"` force la chaîne à résoudre la version patchée.
+- **`fast-uri` (high, GHSA-?-host-confusion)** — host confusion via percent-encoded authority delimiters. Vulnérabilité dans `<=3.1.1`. Même chaîne d'install. Le même override `>=3.1.2` la couvre.
+- **`ip-address` (moderate, GHSA-v2v4-37r5-5v8g)** — XSS dans les méthodes Address6 HTML-emitting. Vulnérabilité dans `<=10.1.0`. Path : `@angular/cli@21.2.10 > @modelcontextprotocol/sdk@1.26.0 > express-rate-limit@8.4.1 > ip-address@10.1.0`. Override `ip-address: ">=10.1.1"`.
+
+Les trois CVE vivent dans la **toolchain de build** (Angular dev-server, CLI, build-angular) — pas dans le bundle servi aux utilisateurs finaux. Aucune n'a jamais touché un déploiement Pages, une image Docker ou un ZIP standalone v1.0/v1.1. L'override est une mesure d'hygiène supply-chain pour avoir un audit propre dans la GH Release v1.2.0.
+
+`pnpm audit --json` post-bump et post-overrides : `{ info: 0, low: 0, moderate: 0, high: 0, critical: 0 }`.
+
+### Notes
+
+- **Apprentissage `ng update` dans monorepo pnpm avec tsconfig externalisé.** Le schematic CDK 21 résout `extends: "../../tsconfig.base.json"` depuis son workspace temp (`/private/var/.../ng-XXXX/`), ce qui retombe sur `/tsconfig.base.json` (chemin absolu inexistant) et plante. Stratégie de contournement : bump manuel via `pnpm add @21.2` sur l'ensemble des packages Angular. Cf. ADR-009 § Conséquences.
+- **Pin par mineure (`@21.2`), jamais par patch (`@21.2.10`)** dans les `pnpm add` Angular. Le désalignement de patch core / cli (12 vs 10 au 2026-05-08) plante un pin par patch parce que `@angular/cli@21.2.12` n'existe pas.
+- **TypeScript reste sur `~5.9.x`**. Angular 21.2 accepte `>=5.9 <6.1` (TS 6.0 inclus), mais empiler TS 5→6 dans le même sprint que Angular 20→21 + Vitest 3→4 ferait trois bumps majeurs simultanés. TS 6 sera traité dans un sprint dédié post-v1.2 si nécessaire.
+- **Worker pool actif par défaut.** Validation manuelle : ouvrir l'app sur Pages déployée, charger un fichier ≥ 50 Mo, vérifier en DevTools Network que `scan-worker.<hash>.js` est matérialisé comme asset séparé, et confirmer dans la console qu'aucun `console.warn("[pii-scanner-web] WorkerPoolRunner indisponible")` n'est émis.
+- **API publique des packages npm inchangée.** `@rezdevops/pii-detectors` et `@rezdevops/pii-scanner-engine` ne reçoivent aucune modification d'API ni de comportement (`createDefaultScanWorker` reste exporté, juste `@deprecated`). Le bump à `1.2.0` est un alignement monorepo. Les consommateurs externes peuvent migrer sans aucune adaptation.
+- **Sous-domaine `pii-scanner.rezdevops.com`** reporté à un sprint futur (DNS pas encore configuré côté registrar). L'URL officielle de la démo reste `https://rezdevops.github.io/pii-scanner-web/` en v1.2.0.
+- **Bumps des 3 actions GitHub à surveiller** (`docker/metadata-action@v5`, `softprops/action-gh-release@v2`, `sigstore/cosign-installer@v3`) reportés à un sprint chore séparé pour ne pas surcharger v1.2.
+
 ## [1.1.0] — 2026-05-03
 
 Sprint S6.1 — **drag & drop incrémental + détection des doublons**. Première feature UX depuis `v1.0.0`. Avant ce sprint, chaque dépôt de fichier(s) **remplaçait** la file de scan : impossible d'ajouter un second lot sans perdre les findings du premier. Désormais, un nouveau drop (drag&drop ou picker) **ajoute** ses fichiers à la suite, le rapport global agrège l'historique, et les doublons (`name` + `size` identiques) sont rejetés avec un libellé explicite. Le bouton « Réinitialiser » reste le seul moyen de repartir d'une file vide. Aucun changement côté détecteurs ni parseurs : 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.0.5`.
