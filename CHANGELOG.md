@@ -2,6 +2,24 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.2.2] — 2026-07-05
+
+Migration du package manager **pnpm 9 → pnpm 10**, alignant `pii-scanner-web` sur `rezdevops-site` (déjà en pnpm 10). Dernier chantier d'infra ouvert après la vague Node. Chantier manifeste + doc uniquement : **aucun changement fonctionnel** — détecteurs, formats, exports et API publique strictement identiques à `v1.2.1`. CSP intacte, promesse souveraineté inchangée.
+
+### Modifications
+
+- **`package.json` racine** — `packageManager` `pnpm@9.12.0` → `pnpm@10.34.4` ; `engines.pnpm` `>=9` → `>=10`. Dernier patch du majeur 10 (on ne devance pas `rezdevops-site`, pnpm 11 non adopté).
+- **`docs/adr/0011-bump-pnpm-10.md`** — décision : bump pnpm 10, pas d'`onlyBuiltDependencies`, pas de `--legacy` (repo sans `pnpm deploy`), lockfile inchangé.
+- **`docs/adr/README.md`** — index étendu avec l'entrée 0011.
+- **`README.md` + `BOOTSTRAP.md`** — pré-requis pnpm mis à jour (`>=10` via Corepack) + note sur le blocage des scripts de build en pnpm 10.
+
+### Notes
+
+- **`pnpm-lock.yaml` inchangé.** pnpm 9 et 10 partagent le format `lockfileVersion: '9.0'` : la régénération avec pnpm 10.34.4 produit un fichier byte-identique. `pnpm install --frozen-lockfile` sous pnpm 10 → « Lockfile is up to date » (exit 0).
+- **Scripts de build bloqués par défaut (durcissement pnpm 10).** L'install signale « Ignored build scripts » pour `esbuild` (0.27.3/0.27.7/0.28.1), `@parcel/watcher@2.5.6`, `lmdb@3.5.1`, `msgpackr-extract@3.0.3`. Aucun requis (binaires prébuildés ou fallback JS) : `build`/`test`/`audit` passent sans allowlist. Message attendu, non bloquant.
+- **Aucun changement de workflow ni de Dockerfile.** Les workflows utilisent `corepack enable` (provisionne pnpm 10 via `packageManager`) ; le Dockerfile copie un `dist/` pré-buildé sans toucher à pnpm.
+- `pnpm audit --audit-level=high --prod` post-migration : 0 high / 0 critical.
+
 ## [1.2.1] — 2026-07-05
 
 Migration CI Node : retrait de Node 20 (EOL avril 2026 ; runtime `setup-node` retiré des runners GitHub le 2026-06-02) au profit de la matrice `["22", "24"]`. Dernier repo de la vague de migration Node RezDevOps (après `rezdevops-site` et `fec-check`). Livré conjointement avec un **patch de sécurité Angular 21.2.12 → 21.2.17** qui corrige 5 CVE `high` publiées sur `@angular/core` et `@angular/common` (le step CI `pnpm audit --audit-level=high --prod` bloquait dessus, indépendamment du bump Node). **Aucun changement côté détecteurs, parseurs, exports ni API publique** — 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.2.0`. CSP intacte, promesse souveraineté inchangée. Corepack et pnpm 9 conservés (montée pnpm 10 = chantier distinct).
