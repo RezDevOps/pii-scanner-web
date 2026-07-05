@@ -2,6 +2,28 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.2.1] — 2026-07-05
+
+Migration CI Node : retrait de Node 20 (EOL avril 2026 ; runtime `setup-node` retiré des runners GitHub le 2026-06-02) au profit de la matrice `["22", "24"]`. Dernier repo de la vague de migration Node RezDevOps (après `rezdevops-site` et `fec-check`). Chantier purement infra CI + manifestes : **aucun changement côté détecteurs, parseurs, exports ni API publique** — 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.2.0`. CSP intacte, promesse souveraineté inchangée. Corepack et pnpm 9 conservés (montée pnpm 10 = chantier distinct).
+
+### Modifications
+
+- **`.github/workflows/ci.yml`** — matrice `node: ["20", "22"]` → `["22", "24"]`. Node 20 retiré (EOL, plus de couverture amont ni de runtime sur les runners) ; Node 22 = LTS active (cible build/deploy), Node 24 valide la prochaine LTS. Aligné sur `rezdevops-site`.
+- **`.github/workflows/release.yml`** — `env.NODE_VERSION: "20"` → `"22"` (LTS active pour build + publication).
+- **`.github/workflows/deploy-pages.yml`** — `node-version: "20"` → `"22"` (+ nom de step).
+- **`package.json` racine** — `engines.node` `>=20.19` → `>=22.12`. Borne alignée sur la matrice Angular 21 (`^20.19.0 || ^22.12.0 || >=24.0.0`, borne basse relevée à 22.12).
+- **`packages/pii-detectors/package.json` + `packages/pii-scanner-engine/package.json`** — `engines.node` `>=20.10` → `>=22.12` pour une borne unique et cohérente dans le monorepo.
+- **`.nvmrc`** — `20` → `22`.
+- **`docs/adr/0010-bump-node-22-24.md`** — décision architecturale : matrice `["22", "24"]`, build/deploy sur 22, borne engine `>=22.12`, pnpm 9 conservé.
+- **`docs/adr/README.md`** — index étendu avec l'entrée 0010.
+- **`README.md` + `BOOTSTRAP.md`** — pré-requis Node mis à jour (`>=22.12`).
+
+### Notes
+
+- `pnpm-lock.yaml` non régénéré : seuls les champs `engines` changent, aucune dépendance ajoutée ou bumpée.
+- `codeql.yml` non concerné (n'installe pas Node).
+- Corepack (`corepack enable`) déjà en place dans les trois workflows Node : aucune modification.
+
 ## [1.2.0] — 2026-05-08
 
 Sprint S7 — **alignement stack Angular 21 (Data Context v0.6) + worker pool app-side réactivé + nettoyage dette CI résiduelle**. Trois chantiers livrés ensemble parce qu'ils sont co-dépendants côté validation utilisateur. Aucun changement côté détecteurs ni parseurs : 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.1.0`. La promesse souveraineté reste tenue à l'identique : calcul local, zéro réseau, CSP `connect-src 'none'` intacte.
