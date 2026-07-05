@@ -21,8 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Matrix ["22", "24"] depuis le 2026-07-05 : Node 20 a atteint son EOL
+      # (avril 2026, runtime setup-node retiré côté GitHub le 2026-06-02),
+      # plus de couverture amont. Node 22 = LTS active (cible de build/deploy
+      # Pages, cf. release.yml + deploy-pages.yml), Node 24 valide la
+      # prochaine LTS. Cohérent avec rezdevops-site.
       matrix:
-        node: ["20", "22"]
+        node: ["22", "24"]
 
     steps:
       - name: Checkout

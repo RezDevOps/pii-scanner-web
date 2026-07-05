@@ -32,7 +32,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  NODE_VERSION: "20"
+  NODE_VERSION: "22"
   # IMAGE_NAME hard-codé en lowercase. La spec OCI/Docker impose des
   # noms de repository en minuscules, et `cosign sign` (qui utilise
   # go-containerregistry, plus strict que le client Docker) refuse

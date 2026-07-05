@@ -2,6 +2,40 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.2.1] — 2026-07-05
+
+Migration CI Node : retrait de Node 20 (EOL avril 2026 ; runtime `setup-node` retiré des runners GitHub le 2026-06-02) au profit de la matrice `["22", "24"]`. Dernier repo de la vague de migration Node RezDevOps (après `rezdevops-site` et `fec-check`). Livré conjointement avec un **patch de sécurité Angular 21.2.12 → 21.2.17** qui corrige 5 CVE `high` publiées sur `@angular/core` et `@angular/common` (le step CI `pnpm audit --audit-level=high --prod` bloquait dessus, indépendamment du bump Node). **Aucun changement côté détecteurs, parseurs, exports ni API publique** — 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.2.0`. CSP intacte, promesse souveraineté inchangée. Corepack et pnpm 9 conservés (montée pnpm 10 = chantier distinct).
+
+### Sécurité
+
+- **Stack Angular bumpée `21.2.12` → `21.2.17`** (runtime : core, common, animations, compiler, forms, platform-browser, platform-browser-dynamic, router, compiler-cli) ; **`@angular/cdk` + `@angular/material` `21.2.10` → `21.2.14`** ; **`@angular/cli` + `@angular/build` → `21.2.18`**. Corrige 5 CVE `high` du 2026 :
+  - `@angular/core` < 21.2.17 — Client Hydration DOM Clobbering & Response-Cache Poisoning ([GHSA-rgjc-h3x7-9mwg](https://github.com/advisories/GHSA-rgjc-h3x7-9mwg)).
+  - `@angular/common` < 21.2.15 — DoS via OOM dans le formatage de nombres `digitsInfo` ([GHSA-p3vc-36g9-x9gr](https://github.com/advisories/GHSA-p3vc-36g9-x9gr)).
+  - `@angular/common` < 21.2.15 — fuite d'information via cache par défaut des requêtes authentifiées dans `HttpTransferCache` ([GHSA-q6f4-qqrg-jv6x](https://github.com/advisories/GHSA-q6f4-qqrg-jv6x)).
+  - `@angular/common` < 21.2.17 — DoS via OOM dans `formatDate` ([GHSA-48r7-hpm6-gfxm](https://github.com/advisories/GHSA-48r7-hpm6-gfxm)).
+  - `@angular/common` < 21.2.17 — hachage de clé de cache 32 bits faible dans `HttpTransferCache` (fuite inter-requêtes) ([GHSA-39pv-4j6c-2g6v](https://github.com/advisories/GHSA-39pv-4j6c-2g6v)).
+- `pnpm audit --audit-level=high --prod` post-bump : **0 high / 0 critical**. NB : la SPA calcule en local sans SSR ni `HttpTransferCache` en production, donc l'exposition réelle à ces CVE était nulle ; le bump reste appliqué pour rester dans la fenêtre supportée et débloquer la CI.
+
+### Modifications
+
+- **`.github/workflows/ci.yml`** — matrice `node: ["20", "22"]` → `["22", "24"]`. Node 20 retiré (EOL, plus de couverture amont ni de runtime sur les runners) ; Node 22 = LTS active (cible build/deploy), Node 24 valide la prochaine LTS. Aligné sur `rezdevops-site`.
+- **`.github/workflows/release.yml`** — `env.NODE_VERSION: "20"` → `"22"` (LTS active pour build + publication).
+- **`.github/workflows/deploy-pages.yml`** — `node-version: "20"` → `"22"` (+ nom de step).
+- **`package.json` racine** — `engines.node` `>=20.19` → `>=22.12`. Borne alignée sur la matrice Angular 21 (`^20.19.0 || ^22.12.0 || >=24.0.0`, borne basse relevée à 22.12).
+- **`packages/pii-detectors/package.json` + `packages/pii-scanner-engine/package.json`** — `engines.node` `>=20.10` → `>=22.12` pour une borne unique et cohérente dans le monorepo.
+- **`.nvmrc`** — `20` → `22`.
+- **`docs/adr/0010-bump-node-22-24.md`** — décision architecturale : matrice `["22", "24"]`, build/deploy sur 22, borne engine `>=22.12`, pnpm 9 conservé.
+- **`docs/adr/README.md`** — index étendu avec l'entrée 0010.
+- **`README.md` + `BOOTSTRAP.md`** — pré-requis Node mis à jour (`>=22.12`).
+- **`apps/pii-scanner-web/package.json`** — bumps Angular ci-dessus (section Sécurité).
+- **`pnpm-lock.yaml`** — régénéré (pnpm 9.12.0, `--lockfile-only`) pour absorber le patch Angular 21.2.17 + le flottement du devkit `@angular-devkit/build-angular@21.2` vers 21.2.18 (churn transitif babel/esbuild associé). Pas de saut de schema lockfile.
+
+### Notes
+
+- `codeql.yml` non concerné (n'installe pas Node).
+- Corepack (`corepack enable`) déjà en place dans les trois workflows Node : aucune modification.
+- Détecteurs, parseurs et surface publique des packages npm inchangés : le bump Angular est un patch de sécurité runtime sans impact API.
+
 ## [1.2.0] — 2026-05-08
 
 Sprint S7 — **alignement stack Angular 21 (Data Context v0.6) + worker pool app-side réactivé + nettoyage dette CI résiduelle**. Trois chantiers livrés ensemble parce qu'ils sont co-dépendants côté validation utilisateur. Aucun changement côté détecteurs ni parseurs : 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.1.0`. La promesse souveraineté reste tenue à l'identique : calcul local, zéro réseau, CSP `connect-src 'none'` intacte.

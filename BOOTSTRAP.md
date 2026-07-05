@@ -2,19 +2,19 @@
 
 Configurations GitHub UI et outils locaux requis pour qu'un fork (ou un nouveau repo qui réutilise ce template) puisse exécuter le pipeline `release.yml` de bout en bout sans casse.
 
-Document à jour au 2026-05-08 (sprint S7, v1.2.0).
+Document à jour au 2026-07-05 (v1.2.1, migration CI Node 22/24).
 
 ## Outils locaux
 
 | Outil  | Version requise                                              | Vérification     |
 | ------ | ------------------------------------------------------------ | ---------------- |
-| Node   | `>=20.19` (ou 22.12+, 24+)                                   | `node --version` |
+| Node   | `>=22.12` (22 LTS ou 24+)                                    | `node --version` |
 | pnpm   | `>=9` (testé sur 9.12.0)                                     | `pnpm --version` |
 | Git    | `>=2.40`                                                     | `git --version`  |
 | gh CLI | `>=2.40` (optionnel mais recommandé pour PR + monitoring CI) | `gh --version`   |
 | cosign | optionnel, pour vérifier signatures localement               | `cosign version` |
 
-Le bump Node `>=20.19` (depuis v1.2.0) est imposé par `@angular-devkit/build-angular@21` (`engines.node = ^20.19.0 || ^22.12.0 || >=24.0.0`). Si vous êtes en Node 20.18 ou inférieur, `pnpm install` warn (et plante avec `engine-strict=true` dans votre `.npmrc`).
+Le bump Node `>=22.12` (depuis la migration du 2026-07-05, cf. `docs/adr/0010-bump-node-22-24.md`) retire le support de Node 20 arrivé en EOL (avril 2026). Angular 21 (`@angular-devkit/build-angular@21`, `engines.node = ^20.19.0 || ^22.12.0 || >=24.0.0`) tourne sur 22 (LTS active) ou 24. Si vous êtes sous Node 22.12, `pnpm install` warn (et plante avec `engine-strict=true` dans votre `.npmrc`).
 
 ## Secrets GitHub à configurer (`Settings → Secrets and variables → Actions → Secrets`)
 
@@ -87,7 +87,7 @@ cosign verify ghcr.io/rezdevops/pii-scanner-web:1.2.0 \
 
 Checklist minimale pour qu'un fork puisse tagger sa propre release :
 
-1. Cloner le fork, vérifier `node --version` >= 20.19, `pnpm --version` >= 9.
+1. Cloner le fork, vérifier `node --version` >= 22.12, `pnpm --version` >= 9.
 2. Créer le secret `NPM_TOKEN` (cf. supra), même si la première release ne publie pas (le workflow ne plantera pas en absence de token, mais le job `publish-npm` sera skip).
 3. Configurer l'environnement `github-pages` avec règle Tag `v*`.
 4. Activer Pages en mode `GitHub Actions`.
