@@ -2,19 +2,21 @@
 
 Configurations GitHub UI et outils locaux requis pour qu'un fork (ou un nouveau repo qui réutilise ce template) puisse exécuter le pipeline `release.yml` de bout en bout sans casse.
 
-Document à jour au 2026-07-05 (v1.2.1, migration CI Node 22/24).
+Document à jour au 2026-07-05 (v1.2.2, migration pnpm 10).
 
 ## Outils locaux
 
 | Outil  | Version requise                                              | Vérification     |
 | ------ | ------------------------------------------------------------ | ---------------- |
 | Node   | `>=22.12` (22 LTS ou 24+)                                    | `node --version` |
-| pnpm   | `>=9` (testé sur 9.12.0)                                     | `pnpm --version` |
+| pnpm   | `>=10` (testé sur 10.34.4, via Corepack)                     | `pnpm --version` |
 | Git    | `>=2.40`                                                     | `git --version`  |
 | gh CLI | `>=2.40` (optionnel mais recommandé pour PR + monitoring CI) | `gh --version`   |
 | cosign | optionnel, pour vérifier signatures localement               | `cosign version` |
 
 Le bump Node `>=22.12` (depuis la migration du 2026-07-05, cf. `docs/adr/0010-bump-node-22-24.md`) retire le support de Node 20 arrivé en EOL (avril 2026). Angular 21 (`@angular-devkit/build-angular@21`, `engines.node = ^20.19.0 || ^22.12.0 || >=24.0.0`) tourne sur 22 (LTS active) ou 24. Si vous êtes sous Node 22.12, `pnpm install` warn (et plante avec `engine-strict=true` dans votre `.npmrc`).
+
+Le bump **pnpm 10** (`packageManager: pnpm@10.34.4`, cf. `docs/adr/0011-bump-pnpm-10.md`) est provisionné automatiquement par Corepack (`corepack enable` puis toute commande `pnpm`) : inutile d'installer pnpm globalement. En pnpm 10, `pnpm install` **n'exécute plus les scripts de build des dépendances par défaut** (durcissement supply-chain). Ce repo assume ce comportement : les paquets concernés (`esbuild`, `@parcel/watcher`, `lmdb`, `msgpackr-extract`) embarquent des binaires prébuildés ou un fallback JS, donc build et tests passent sans allowlist `onlyBuiltDependencies`. Le message « Ignored build scripts » est attendu et non bloquant.
 
 ## Secrets GitHub à configurer (`Settings → Secrets and variables → Actions → Secrets`)
 
@@ -87,7 +89,7 @@ cosign verify ghcr.io/rezdevops/pii-scanner-web:1.2.0 \
 
 Checklist minimale pour qu'un fork puisse tagger sa propre release :
 
-1. Cloner le fork, vérifier `node --version` >= 22.12, `pnpm --version` >= 9.
+1. Cloner le fork, vérifier `node --version` >= 22.12, `pnpm --version` >= 10 (via `corepack enable`).
 2. Créer le secret `NPM_TOKEN` (cf. supra), même si la première release ne publie pas (le workflow ne plantera pas en absence de token, mais le job `publish-npm` sera skip).
 3. Configurer l'environnement `github-pages` avec règle Tag `v*`.
 4. Activer Pages en mode `GitHub Actions`.

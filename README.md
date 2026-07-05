@@ -19,6 +19,8 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
+**v1.2.2 — Migration pnpm 10.** Bump `packageManager` `pnpm@9.12.0 → pnpm@10.34.4`, `engines.pnpm >=9 → >=10`, aligné sur `rezdevops-site`. Provisionné par Corepack (aucun changement de workflow). Le lockfile est inchangé (format lockfileVersion 9.0 commun à pnpm 9 et 10) : `pnpm install --frozen-lockfile` reste vert. pnpm 10 n'exécute plus les scripts de build des dépendances par défaut ; les paquets concernés (esbuild, @parcel/watcher, lmdb, msgpackr-extract) embarquent des binaires prébuildés ou un fallback JS, donc aucun `onlyBuiltDependencies` requis (message « Ignored build scripts » attendu, non bloquant). Pas de `--legacy` : ce repo n'utilise pas `pnpm deploy`. `pnpm audit --prod` : 0 high / 0 critical. Aucun changement fonctionnel. Cf. `docs/adr/0011-bump-pnpm-10.md`.
+
 **v1.2.1 — Migration CI Node 22/24 + patch sécurité Angular.** Retrait de Node 20 (EOL avril 2026, runtime setup-node retiré des runners GitHub le 2026-06-02). Matrice CI `["22", "24"]`, build/déploiement fixés sur Node 22 (LTS active), engine `node` relevé `>=20.19 → >=22.12` sur la racine et les deux packages, `.nvmrc` à `22`. Livré avec le patch Angular `21.2.12 → 21.2.17` corrigeant 5 CVE `high` (`@angular/core`/`@angular/common`) qui bloquaient le step `pnpm audit` ; `pnpm audit --prod` post-bump : 0 high / 0 critical. Corepack + pnpm 9 inchangés (montée pnpm 10 = chantier distinct). Aucun changement fonctionnel : détecteurs, formats, exports et API publique strictement identiques à `v1.2.0`. Cf. `docs/adr/0010-bump-node-22-24.md`.
 
 **v1.2.0 — Angular 21 + worker pool app-side + dette CI résiduelle.** Sprint S7. Trois chantiers livrés ensemble : (1) bump de la stack front-end Angular 20 → 21.2.x conjointement Vitest 3 → 4.1.5 et engine Node 20.10 → 20.19, (2) réactivation du pool de Web Workers via un script worker hébergé côté app (résout le bug v1.0 où le pool était silencieusement désactivé), (3) durcissement `if-no-files-found: warn → error` sur l'upload des artifacts npm + bloc `pnpm.overrides` dans le `package.json` racine pour patcher 3 CVE actives dans la toolchain Angular 21.2 (`fast-uri` x2 high, `ip-address` moderate). Aucun changement côté détecteurs ni parseurs : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`. API publique des packages npm strictement identique à `v1.1.0` (alignement monorepo). CSP intacte. `pnpm audit` post-bump : 0 high / 0 moderate / 0 critical.
@@ -133,7 +135,7 @@ L'audit des dépendances est documenté à chaque sprint qui touche le `package.
 ## Développement
 
 ```bash
-# Prérequis : Node >=22.12 et pnpm 9+
+# Prérequis : Node >=22.12 et pnpm 10+ (via corepack enable)
 pnpm install --frozen-lockfile
 pnpm format:check  # Prettier (CI bloquant)
 pnpm build         # build des trois couches (ordre : packages avant app)
