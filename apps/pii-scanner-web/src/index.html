@@ -20,13 +20,17 @@
         styles inline sur les composants (mat-ripple, mat-overlay). Le
         compromis est documenté ; pas d'autres vecteurs (pas de scripts inline).
       - `img-src 'self' data:` : Angular Material peut produire des data:
-        URI pour des décorations légères (ripple, overlay). Aucune image
-        externe n'est chargée.
-      - `font-src 'self' data:` : conservée par anticipation. Aucune
-        police n'est packagée à ce jour — la stack système est utilisée
-        partout (cf. `src/styles.scss`). Les icônes Material sont rendues
-        depuis des SVG inline TypeScript (cf. `src/app/icons/icon-registry.ts`),
-        donc ni Material Icons font, ni Google Fonts, ni requête réseau.
+        URI pour des décorations légères (ripple, overlay). Le logo
+        RezDevOps (`public/logo-rezdevops.png`) est servi par l'origine
+        (`'self'`). Aucune image externe n'est chargée.
+      - `font-src 'self' data:` : depuis la refonte UI v1.3, les polices de
+        marque (Space Grotesk / Barlow / Inter / JetBrains Mono, sources OFL
+        Fontsource) sont auto-hébergées dans `public/fonts/*.woff2` et
+        servies par l'origine (`'self'`) — aucun CDN, aucune requête réseau,
+        cohérent avec la promesse de souveraineté. Les icônes Material sont
+        rendues depuis des SVG inline TypeScript (cf.
+        `src/app/icons/icon-registry.ts`) : ni Material Icons font, ni Google
+        Fonts.
       - `worker-src 'self' blob:` : Web Worker du pool de scan
         (bundler Angular peut servir le worker via un blob: URL).
       - `object-src 'none'` + `media-src 'none'` + `manifest-src 'none'`
@@ -57,6 +61,7 @@
     />
     <meta name="referrer" content="no-referrer" />
     <meta name="robots" content="index,follow" />
+    <meta name="theme-color" content="#031e3f" />
     <meta
       name="description"
       content="Scanner local de données personnelles dans des fichiers bureautiques. Aucun upload : tout reste dans votre navigateur."

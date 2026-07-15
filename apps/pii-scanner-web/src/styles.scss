@@ -1,104 +1,267 @@
 /*
- * Styles globaux de pii-scanner-web — sprint S3.
+ * Styles globaux de pii-scanner-web.
  *
- * Stack : Angular Material 20 (M3, dark/light auto), thème indigo-sobre
- * aligné Brand Bible (couleurs RezDevOps : bleu nuit / blanc cassé /
- * accent ambre pour les findings critiques).
+ * Refonte UI « RezDevOps / Tech futuriste » (v1.3) : la coquille adopte
+ * l'identité visuelle de rezdevops.com (mockup validé) — fond dark navy,
+ * halos bleus, grille technique, surfaces « glass », polices de marque
+ * auto-hébergées. Les tokens `--psw-*` sont désormais définis en DARK par
+ * défaut : les composants custom (drop-zone, badges sévérité, rapport)
+ * héritent de la nouvelle palette sans modification.
  *
  * Décisions :
- * - Thème construit avec `mat.theme()` (M3) plutôt qu'un thème prebuilt
- *   pour piloter la palette (souveraineté = identité, pas un thème
- *   générique).
- * - `density(-1)` pour resserrer la table des findings sans casser WCAG.
- * - Variables CSS `--psw-*` conservées pour les composants custom-wrap
- *   qui ne dépendent pas de Material (drop-zone visuelle, badges PII).
+ * - Thème Material M3 en `theme-type: dark`, primary bleu de marque.
+ * - Polices auto-hébergées (`src/fonts/*.woff2`, sources OFL Fontsource) :
+ *   aucune requête réseau, aucun CDN — cohérent avec la promesse de
+ *   souveraineté et la CSP `font-src 'self'`. Référencées en ressources
+ *   RÉSOLUES (`url("./fonts/…")`) : esbuild les empreinte (fingerprint) et
+ *   réécrit des URLs relatives valides sous TOUS les cibles de déploiement
+ *   (sous-chemin GitHub Pages `/pii-scanner-web/`, ZIP `file://`, Docker).
+ *   NB : ne PAS utiliser `/fonts/` absolu (le site le peut car servi à la
+ *   racine ; ici le sous-chemin GH Pages le casserait).
+ * - Palette alignée sur la Brand Bible (`--rz-*` du site) : navy #031E3F,
+ *   bleu #2063B6, blue-glow #3D8CE8, vert d'accent #33D17A.
+ * - Couleurs de sévérité en variante « dark » (lisibles sur navy, contraste
+ *   WCAG AA vérifié — cf. `docs/accessibilite.md`).
  */
 
 @use "@angular/material" as mat;
 
 @include mat.core();
 
+/* --------------------------------------------------------------------- */
+/* Polices de marque auto-hébergées (OFL, Fontsource). URLs relatives.    */
+/* --------------------------------------------------------------------- */
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/space-grotesk-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/space-grotesk-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/space-grotesk-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/space-grotesk-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/barlow-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/barlow-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Barlow";
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/barlow-800.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/inter-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/inter-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/inter-600.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/inter-700.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/jetbrains-mono-400.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/jetbrains-mono-500.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url("./fonts/jetbrains-mono-700.woff2") format("woff2");
+}
+
 html {
-  color-scheme: light dark;
+  color-scheme: dark;
 
   @include mat.theme(
     (
       color: (
-        theme-type: light,
-        primary: mat.$azure-palette,
-        tertiary: mat.$blue-palette,
+        theme-type: dark,
+        primary: mat.$blue-palette,
+        tertiary: mat.$azure-palette,
       ),
-      typography: Roboto,
+      typography: (
+        plain-family: "Inter",
+        brand-family: "Barlow",
+      ),
       density: -1,
     )
   );
 }
 
 :root {
-  --psw-bg: #ffffff;
-  --psw-fg: #1a1a1a;
-  --psw-muted: #595959;
-  --psw-accent: #1f4f7a;
-  --psw-border: #e2e2e2;
-  --psw-surface: #f5f7fa;
-  --psw-danger: #a02016;
-  --psw-warning: #92400e;
-  --psw-success: #2e7d32;
+  /* --- Palette de marque (miroir des tokens --rz-* du site) --- */
+  --rz-navy: #031e3f;
+  --rz-navy-3: #020e20;
+  --rz-navy-4: #0a2c5c;
+  --rz-blue: #2063b6;
+  --rz-blue-2: #2c7ce0;
+  --rz-blue-soft: #5c9be6;
+  --rz-blue-glow: #3d8ce8;
+  --rz-green: #33d17a;
+  --rz-line: rgba(60, 140, 232, 0.18);
+  --rz-line-soft: rgba(255, 255, 255, 0.08);
+  --rz-glass: rgba(10, 44, 92, 0.35);
+
+  /* --- Tokens applicatifs --psw-* (DARK par défaut) ---
+   * Consommés par les composants custom (drop-zone, file-queue, report).
+   * Remapper ici suffit à re-thémer toute l'app. */
+  --psw-bg: #020e20;
+  --psw-fg: #eef2f8;
+  --psw-muted: #9fb0c7;
+  --psw-accent: #5c9be6;
+  --psw-border: rgba(60, 140, 232, 0.18);
+  --psw-surface: rgba(10, 44, 92, 0.35);
+  --psw-danger: #f08278;
+  --psw-warning: #fbbf24;
+  --psw-success: #6ee7b7;
 
   /*
-   * Couleurs par sévérité PII — alignées aux conventions Brand Bible.
-   *
-   * Toutes les couleurs respectent WCAG AA (≥ 4.5:1) sur fond blanc ET
-   * sur le fond pâle dérivé (`color-mix 18%` du badge `.sev`). Les
-   * couleurs ont été ajustées en v0.4.1 (audit accessibilité S4.1) :
-   *   - high : #d97706 → #92400e (était 3.13:1 sur blanc, FAIL AA)
-   *   - medium : #b58900 → #854d0e (était 3.94:1 sur blanc, FAIL AA)
-   * Cf. `docs/accessibilite.md` § « Contrastes ».
+   * Couleurs par sévérité PII — variante « dark » (fond navy).
+   * Contraste WCAG AA (≥ 4.5:1) vérifié sur le fond navy `#020e20` ET sur
+   * le fond de badge dérivé (`color-mix 18%` du composant report).
+   * Cf. `docs/accessibilite.md` § « Contrastes (thème sombre) ».
    */
-  --psw-sev-critical: #a02016;
-  --psw-sev-high: #92400e;
-  --psw-sev-medium: #854d0e;
-  --psw-sev-low: #525252;
-}
+  --psw-sev-critical: #f08278;
+  --psw-sev-high: #fb923c;
+  --psw-sev-medium: #fbbf24;
+  --psw-sev-low: #9fb0c7;
 
-/*
- * Mode sombre — adaptation des variables `--psw-*` quand le système
- * préfère le sombre. Le thème Material M3 bascule via `color-scheme`
- * au-dessus, mais les surfaces custom (drop-zone, badges sévérité)
- * doivent s'adapter explicitement.
- *
- * Les couleurs sévérité passent à des teintes plus claires pour rester
- * lisibles sur fond sombre, en gardant > 4.5:1 de contraste.
- */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --psw-bg: #131516;
-    --psw-fg: #ececec;
-    --psw-muted: #b3b3b3;
-    --psw-accent: #6fb1e8;
-    --psw-border: #3a3d40;
-    --psw-surface: #1d2023;
-    --psw-danger: #f08278;
-    --psw-warning: #fbbf24;
-    --psw-success: #6ee7b7;
-
-    --psw-sev-critical: #f08278;
-    --psw-sev-high: #fb923c;
-    --psw-sev-medium: #fbbf24;
-    --psw-sev-low: #b3b3b3;
-  }
+  /* --- Familles typographiques --- */
+  --psw-font-display: "Space Grotesk", "Barlow", system-ui, sans-serif;
+  --psw-font-heading: "Barlow", "Inter", system-ui, sans-serif;
+  --psw-font-body:
+    "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --psw-font-mono:
+    "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 }
 
 html,
 body {
   height: 100%;
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-    sans-serif;
-  background: var(--psw-bg);
+  font-family: var(--psw-font-body);
   color: var(--psw-fg);
+  background: var(--rz-navy-3);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/*
+ * Fond « Tech futuriste » : halos radiaux bleus + grille technique.
+ * Repris à l'identique du site (body.is-v2::before / ::after). `position:
+ * fixed` colle ces calques à la viewport ; `z-index: 0` les place derrière
+ * le contenu applicatif (`psw-root` remonté en z-index 2, cf.
+ * app.component.scss). `pointer-events: none` : purement décoratif.
+ */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 20% 10%,
+      rgba(32, 99, 182, 0.22),
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 80% 30%,
+      rgba(92, 155, 230, 0.16),
+      transparent 50%
+    ),
+    radial-gradient(
+      circle at 50% 80%,
+      rgba(32, 99, 182, 0.18),
+      transparent 55%
+    ),
+    linear-gradient(180deg, var(--rz-navy-3) 0%, #010917 100%);
+}
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image:
+    linear-gradient(var(--rz-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rz-line) 1px, transparent 1px);
+  background-size: 80px 80px;
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    black 30%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
 a {
@@ -106,19 +269,13 @@ a {
 }
 
 *:focus-visible {
-  outline: 2px solid var(--psw-accent);
+  outline: 2px solid var(--rz-blue-glow);
   outline-offset: 2px;
 }
 
 /* Utilitaire : texte masqué par défaut, révélé au hover/focus.
  * Usage : <span class="psw-mask" tabindex="0">…</span>
- * Aligné avec le principe « ne jamais ré-imprimer un PII en clair par défaut ».
- *
- * Respecte `prefers-reduced-motion` : pas de transition pour les
- * utilisateurs sensibles au mouvement (WCAG 2.3.3, niveau AAA mais
- * souvent désactivé par défaut dans le SE — bonne pratique de
- * neutraliser).
- */
+ * Aligné avec le principe « ne jamais ré-imprimer un PII en clair par défaut ». */
 .psw-mask {
   filter: blur(4px);
   transition: filter 80ms ease;
