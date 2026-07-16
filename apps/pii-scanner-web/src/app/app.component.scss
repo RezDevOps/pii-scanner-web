@@ -1,21 +1,25 @@
 // ----------------------------------------------------------------------------
 // Styles de la coquille pii-scanner-web (landing + démo intégrée + footer).
 //
-// Externalisés depuis le template inline du AppComponent depuis v1.0.0 :
-// la landing étoffée fait sortir les styles du seuil "anyComponentStyle"
-// (cf. budgets angular.json). Variables CSS globales (palette `--psw-*`)
-// définies dans `src/styles.scss`. Mode sombre via `prefers-color-scheme`
-// hérité de la même feuille globale.
+// Refonte UI « RezDevOps / Tech futuriste » (v1.3, mockup validé) : header
+// glass, hero, cartes en verre, panneau souveraineté, distribution, footer
+// avec bloc marque + tagline. Les tokens globaux (palette, polices, fond
+// glow + grille) vivent dans `src/styles.scss` ; ici, tout est local au
+// composant (encapsulation Angular Emulated).
 //
-// Hiérarchie : :host > sections (hero/how/demo/sovereignty/benefits/distribution).
-// Pas de classes utilitaires globales : tout est local au composant.
+// Empilement : `body::before/::after` (styles.scss) portent le fond décoratif
+// en z-index 0 ; on remonte le contenu applicatif au-dessus via
+// `:host { z-index: 2 }` + surfaces `position: relative`.
 // ----------------------------------------------------------------------------
 
 :host {
   display: block;
+  position: relative;
+  z-index: 2;
   min-height: 100vh;
-  background: var(--psw-bg);
+  background: transparent; // laisse voir le fond glow/grille du body
   color: var(--psw-fg);
+  font-family: var(--psw-font-body);
 }
 
 // --- Lien d'évitement clavier --- //
@@ -23,25 +27,65 @@
   position: absolute;
   left: -10000px;
   top: 0;
-  background: var(--psw-fg);
-  color: var(--psw-bg);
+  background: var(--rz-blue);
+  color: #fff;
   padding: 0.5rem 1rem;
   z-index: 100;
+  border-radius: 0 0 6px 0;
 
   &:focus {
     left: 0;
   }
 }
 
-// --- Topbar --- //
-.topbar {
+// --- Topbar (mat-toolbar) --- //
+// Override du fond Material (spécificité `mat-toolbar.topbar` > `.mat-toolbar`).
+mat-toolbar.topbar {
   position: sticky;
   top: 0;
   z-index: 10;
   gap: 1rem;
+  height: 76px;
+  padding: 0 40px;
+  background: rgba(3, 20, 47, 0.6);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--rz-line);
+  color: #fff;
+
+  @media (max-width: 760px) {
+    padding: 0 22px;
+  }
 }
 .brand {
-  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: #fff;
+  min-width: 0;
+}
+.brand-logo {
+  height: 44px;
+  width: auto;
+  display: block;
+  flex: none;
+  filter: drop-shadow(0 0 10px rgba(61, 140, 232, 0.35));
+}
+.brand-name {
+  font-family: var(--psw-font-display);
+  font-weight: 700;
+  font-size: 1.02rem;
+  letter-spacing: -0.3px;
+  line-height: 1.05;
+
+  small {
+    display: block;
+    font-family: var(--psw-font-mono);
+    font-weight: 400;
+    color: var(--psw-muted);
+    font-size: 0.68rem;
+    margin-top: 1px;
+  }
 }
 .spacer {
   flex: 1 1 auto;
@@ -49,100 +93,170 @@
 .topnav {
   display: flex;
   gap: 1.25rem;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
 
   a {
-    color: inherit;
+    color: #eef2f8;
     text-decoration: none;
-    opacity: 0.9;
+    opacity: 0.85;
     border-bottom: 2px solid transparent;
     padding: 0.25rem 0;
 
     &:hover,
     &:focus-visible {
       opacity: 1;
-      border-bottom-color: currentColor;
+      border-bottom-color: var(--rz-blue-glow);
     }
   }
 
-  @media (max-width: 720px) {
+  @media (max-width: 900px) {
     display: none;
   }
 }
 .versions {
-  font-size: 0.8125rem;
-  opacity: 0.85;
+  font-family: var(--psw-font-mono);
+  font-size: 0.72rem;
+  color: var(--rz-blue-soft);
+  background: var(--rz-glass);
+  border: 1px solid var(--rz-line);
+  border-radius: 999px;
+  padding: 0.3rem 0.7rem;
+  white-space: nowrap;
 
-  @media (max-width: 480px) {
+  @media (max-width: 560px) {
     display: none;
   }
 }
 
 // --- Layout principal --- //
 .shell {
-  max-width: 1080px;
+  max-width: 1180px;
   margin: 0 auto;
-  padding: 2rem 1.5rem 0;
+  padding: 2rem 40px 0;
+  position: relative;
+  z-index: 2;
+
+  @media (max-width: 760px) {
+    padding: 2rem 22px 0;
+  }
 }
 
 section {
-  margin-bottom: 3.5rem;
-  scroll-margin-top: 5rem; // ancres respectent la topbar sticky
+  margin-bottom: 4rem;
+  scroll-margin-top: 6rem; // ancres respectent la topbar sticky
 }
 
 h2 {
-  font-size: 1.5rem;
+  font-family: var(--psw-font-heading);
+  font-weight: 800;
+  font-size: clamp(1.6rem, 2vw + 1rem, 2.2rem);
   margin: 0 0 1rem;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  color: #fff;
 }
 
 h3 {
-  font-size: 1.05rem;
+  font-family: var(--psw-font-heading);
+  font-weight: 700;
+  font-size: 1.08rem;
   margin: 0 0 0.5rem;
+  color: #fff;
 }
 
 p {
-  line-height: 1.55;
+  line-height: 1.6;
   margin: 0 0 0.75rem;
   max-width: 70ch;
 }
 
+// --- Cartes « glass » réutilisables --- //
+%glass-card {
+  background: linear-gradient(
+    160deg,
+    var(--rz-glass) 0%,
+    rgba(2, 14, 32, 0.4) 100%
+  );
+  border: 1px solid var(--rz-line);
+  border-radius: 14px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
 // --- Hero --- //
 .hero {
-  padding: 1rem 0 1.5rem;
+  padding: 2rem 0 1.5rem;
 
   .eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.75rem;
-    color: var(--psw-muted);
-    margin-bottom: 0.75rem;
+    letter-spacing: 0.14em;
+    font-size: 0.7rem;
     font-weight: 600;
+    color: var(--rz-blue-soft);
+    font-family: var(--psw-font-mono);
+    background: rgba(61, 140, 232, 0.08);
+    border: 1px solid var(--rz-line);
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    margin-bottom: 1.3rem;
+
+    &::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--rz-green);
+      box-shadow: 0 0 8px var(--rz-green);
+    }
   }
 
   h1 {
-    font-size: clamp(1.6rem, 2.4vw + 0.8rem, 2.4rem);
-    line-height: 1.15;
+    font-family: var(--psw-font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 3vw + 1rem, 3.4rem);
+    line-height: 1.08;
     margin: 0 0 1rem;
     letter-spacing: -0.02em;
+    color: #fff;
+
+    .grad {
+      background: linear-gradient(
+        120deg,
+        #fff 0%,
+        var(--rz-blue-soft) 55%,
+        var(--rz-blue-glow) 100%
+      );
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
   }
 
   .hero-subtitle {
+    font-family: var(--psw-font-heading);
     color: var(--psw-muted);
-    font-weight: 400;
+    font-weight: 600;
+    font-size: 0.5em;
+    letter-spacing: -0.3px;
   }
 
   .lead {
-    font-size: 1.05rem;
-    color: var(--psw-fg);
+    font-size: 1.06rem;
+    color: var(--psw-muted);
     max-width: 65ch;
+
+    strong {
+      color: #fff;
+    }
   }
 
   .cta-row {
     display: flex;
     gap: 0.75rem;
     flex-wrap: wrap;
-    margin: 1.25rem 0 1.5rem;
+    margin: 1.6rem 0 1.75rem;
   }
 
   .hero-bullets {
@@ -151,16 +265,74 @@ p {
     margin: 0;
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 0.5rem 1.25rem;
+    gap: 0.6rem 1.25rem;
 
     li {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.6rem;
       font-size: 0.95rem;
-      color: var(--psw-fg);
+      color: #eef2f8;
+
+      &::before {
+        content: "✓";
+        flex: none;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: rgba(51, 209, 122, 0.14);
+        color: var(--rz-green);
+        display: grid;
+        place-items: center;
+        font-size: 0.72rem;
+        font-weight: 700;
+      }
     }
   }
+
+  // Signature de marque (tagline)
+  .brand-signature {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-top: 2.2rem;
+
+    .bar {
+      width: 3px;
+      height: 26px;
+      border-radius: 2px;
+      background: linear-gradient(180deg, var(--rz-blue-glow), var(--rz-green));
+      flex: none;
+    }
+
+    .tag-line {
+      font-family: var(--psw-font-display);
+      font-weight: 500;
+      font-size: 1.1rem;
+      color: #eef2f8;
+      letter-spacing: 0.2px;
+    }
+  }
+}
+
+// Boutons CTA (Material). En thème M3 dark, le bouton plein « primary » lit
+// `--mat-sys-primary` (teinte pastel claire) comme fond — on force donc
+// directement le fond bleu de marque + texte blanc sur l'hôte (spécificité
+// suffisante pour battre la règle de thème), plus un léger halo.
+.cta-row .cta-primary.mat-mdc-unelevated-button {
+  background-color: var(--rz-blue);
+  --mdc-filled-button-label-text-color: #ffffff;
+  color: #ffffff;
+  box-shadow: 0 8px 24px rgba(32, 99, 182, 0.4);
+
+  &:hover {
+    background-color: var(--rz-blue-2);
+    box-shadow: 0 12px 32px rgba(61, 140, 232, 0.55);
+  }
+}
+.cta-row .cta-secondary {
+  border-color: var(--rz-line);
+  color: #eef2f8;
 }
 
 // --- Comment ça marche --- //
@@ -175,27 +347,31 @@ p {
     gap: 1.25rem;
 
     li {
+      @extend %glass-card;
       position: relative;
-      padding: 1.25rem 1.25rem 1rem 3rem;
-      border: 1px solid var(--psw-border);
-      border-radius: 8px;
-      background: var(--psw-surface);
+      padding: 1.5rem 1.5rem 1.4rem 4.6rem;
     }
 
     .step-num {
       position: absolute;
-      top: 1.25rem;
-      left: 1rem;
-      width: 1.75rem;
-      height: 1.75rem;
+      top: 1.5rem;
+      left: 1.5rem;
+      width: 2rem;
+      height: 2rem;
       border-radius: 50%;
-      background: var(--psw-accent, #1976d2);
-      color: white;
+      background: linear-gradient(
+        135deg,
+        var(--rz-blue) 0%,
+        var(--rz-green) 160%
+      );
+      color: #fff;
       display: inline-flex;
       align-items: center;
       justify-content: center;
+      font-family: var(--psw-font-display);
       font-weight: 700;
-      font-size: 0.95rem;
+      font-size: 1rem;
+      box-shadow: 0 0 16px rgba(32, 99, 182, 0.5);
     }
 
     p {
@@ -222,10 +398,26 @@ p {
 
 // --- Souveraineté --- //
 .sovereignty {
-  padding: 1.5rem;
-  border: 1px solid var(--psw-border);
-  border-radius: 8px;
-  background: var(--psw-surface);
+  @extend %glass-card;
+  position: relative;
+  overflow: hidden;
+  padding: 1.75rem;
+
+  &::before {
+    content: "";
+    position: absolute;
+    right: -60px;
+    top: -60px;
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(
+      circle,
+      rgba(51, 209, 122, 0.16),
+      transparent 70%
+    );
+    pointer-events: none;
+  }
 
   .verify-steps {
     margin: 1rem 0 1.25rem 1.25rem;
@@ -234,14 +426,15 @@ p {
     li {
       margin-bottom: 0.5rem;
       line-height: 1.5;
+      color: #eef2f8;
     }
 
     kbd {
-      background: var(--psw-bg);
-      border: 1px solid var(--psw-border);
-      border-radius: 3px;
-      padding: 0.05rem 0.35rem;
-      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--rz-line);
+      border-radius: 4px;
+      padding: 0.05rem 0.4rem;
+      font-family: var(--psw-font-mono);
       font-size: 0.85rem;
     }
   }
@@ -253,9 +446,10 @@ p {
   .sov-link {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
+    gap: 0.4rem;
+    font-family: var(--psw-font-heading);
     font-weight: 600;
-    color: var(--psw-accent, #1976d2);
+    color: var(--rz-blue-soft);
     text-decoration: none;
     padding: 0.25rem 0;
     border-bottom: 2px solid transparent;
@@ -273,12 +467,13 @@ p {
   }
 
   code {
-    background: var(--psw-bg);
-    border: 1px solid var(--psw-border);
-    border-radius: 3px;
-    padding: 0.05rem 0.35rem;
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--rz-line);
+    border-radius: 4px;
+    padding: 0.05rem 0.4rem;
+    font-family: var(--psw-font-mono);
     font-size: 0.85rem;
+    color: var(--rz-blue-soft);
   }
 }
 
@@ -291,10 +486,8 @@ p {
   }
 
   .benefit {
-    padding: 1.25rem;
-    border: 1px solid var(--psw-border);
-    border-radius: 8px;
-    background: var(--psw-surface);
+    @extend %glass-card;
+    padding: 1.5rem;
 
     h3 {
       display: flex;
@@ -310,10 +503,12 @@ p {
 
     code {
       font-size: 0.85rem;
-      background: var(--psw-bg);
-      border: 1px solid var(--psw-border);
-      border-radius: 3px;
-      padding: 0.05rem 0.3rem;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--rz-line);
+      border-radius: 4px;
+      padding: 0.05rem 0.35rem;
+      font-family: var(--psw-font-mono);
+      color: var(--rz-blue-soft);
     }
   }
 }
@@ -327,10 +522,8 @@ p {
   }
 
   .dist-card {
-    padding: 1.25rem;
-    border: 1px solid var(--psw-border);
-    border-radius: 8px;
-    background: var(--psw-surface);
+    @extend %glass-card;
+    padding: 1.5rem;
 
     h3 {
       display: flex;
@@ -341,24 +534,80 @@ p {
     p {
       font-size: 0.95rem;
       color: var(--psw-muted);
-      margin: 0 0 0.5rem;
+      margin: 0 0 0.6rem;
     }
 
     .cmd {
       display: block;
-      font-size: 0.85rem;
-      background: var(--psw-bg);
-      border: 1px solid var(--psw-border);
-      border-radius: 4px;
-      padding: 0.5rem 0.6rem;
+      font-size: 0.8rem;
+      background: rgba(2, 14, 32, 0.6);
+      border: 1px solid var(--rz-line);
+      border-radius: 6px;
+      padding: 0.55rem 0.7rem;
       margin: 0;
       overflow-x: auto;
       white-space: nowrap;
-      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-family: var(--psw-font-mono);
+      color: var(--rz-blue-soft);
+    }
+
+    // Ligne commande + bouton copier (cartes Docker / npm).
+    .cmd-row {
+      display: flex;
+      align-items: stretch;
+      gap: 0.5rem;
+      margin: 0;
+
+      .cmd {
+        flex: 1 1 auto;
+        min-width: 0; // autorise le scroll horizontal du <code> en flex
+      }
+    }
+
+    .copy-btn {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0 0.7rem;
+      border: 1px solid var(--rz-line);
+      border-radius: 6px;
+      background: rgba(61, 140, 232, 0.08);
+      color: var(--rz-blue-soft);
+      font-family: var(--psw-font-heading);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
+
+      .ico {
+        width: 15px;
+        height: 15px;
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+
+      &:hover {
+        background: rgba(61, 140, 232, 0.16);
+        border-color: var(--rz-blue-glow);
+        color: #fff;
+      }
+
+      &.copied {
+        color: var(--rz-green);
+        border-color: rgba(51, 209, 122, 0.4);
+        background: rgba(51, 209, 122, 0.1);
+      }
     }
 
     .dist-cta a {
-      color: var(--psw-accent, #1976d2);
+      color: var(--rz-blue-soft);
       text-decoration: none;
 
       &:hover,
@@ -371,34 +620,156 @@ p {
 
 // --- Footer --- //
 .footer {
-  border-top: 1px solid var(--psw-border);
-  margin-top: 3rem;
+  border-top: 1px solid var(--rz-line);
+  margin-top: 3.5rem;
+  position: relative;
+  z-index: 2;
 
   .footer-inner {
-    max-width: 1080px;
+    max-width: 1180px;
     margin: 0 auto;
-    padding: 1.5rem;
+    padding: 2rem 40px 2.6rem;
+
+    @media (max-width: 760px) {
+      padding: 2rem 22px 2.6rem;
+    }
   }
 
-  .muted {
+  // Colonnes marque / produit / ressources
+  .footer-cols {
+    display: grid;
+    grid-template-columns: 1.5fr 0.8fr 1fr;
+    gap: 2rem;
+
+    @media (max-width: 860px) {
+      grid-template-columns: 1fr 1fr;
+    }
+    @media (max-width: 560px) {
+      grid-template-columns: 1fr;
+      gap: 1.6rem;
+    }
+  }
+
+  .footer-product {
+    font-family: var(--psw-font-heading);
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fff;
+    margin: 0 0 0.35rem;
+  }
+  .footer-desc {
     color: var(--psw-muted);
     font-size: 0.9rem;
-    margin: 0 0 0.25rem;
+    max-width: 38ch;
+    margin: 0;
   }
 
-  .small {
-    font-size: 0.825rem;
-    opacity: 0.85;
+  // Logo RezDevOps + tagline, sous le produit
+  .footer-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    margin-top: 1.6rem;
+  }
+  .footer-logo {
+    height: 50px;
+    width: auto;
+    display: block;
+    flex: none;
+    filter: drop-shadow(0 0 10px rgba(61, 140, 232, 0.3));
+  }
+  .footer-org {
+    font-family: var(--psw-font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: -0.3px;
+    color: #fff;
+  }
+  .footer-tag {
+    font-family: var(--psw-font-display);
+    font-weight: 500;
+    color: var(--psw-muted);
+    font-size: 0.9rem;
+    margin-top: 2px;
   }
 
-  a {
-    color: inherit;
-    text-decoration: underline;
-    text-decoration-color: var(--psw-border);
+  // Colonnes de liens
+  .footer-links {
+    .footer-h {
+      font-family: var(--psw-font-heading);
+      font-weight: 700;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--psw-muted);
+      margin: 0 0 0.85rem;
+    }
 
-    &:hover,
-    &:focus-visible {
-      text-decoration-color: currentColor;
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 0.55rem;
+    }
+
+    a {
+      color: #eef2f8;
+      font-size: 0.9rem;
+      opacity: 0.9;
+      text-decoration: none;
+
+      &:hover,
+      &:focus-visible {
+        color: #fff;
+        opacity: 1;
+        text-decoration: underline;
+      }
+    }
+  }
+
+  // Barre basse : crédit + pastilles garanties
+  .footer-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1.2rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.8rem;
+    padding-top: 1.05rem;
+    border-top: 1px solid var(--rz-line-soft);
+  }
+  .footer-credit {
+    color: var(--psw-muted);
+    font-size: 0.84rem;
+    margin: 0;
+  }
+  .footer-pills {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-family: var(--psw-font-mono);
+      font-size: 0.72rem;
+      color: var(--rz-green);
+      border: 1px solid rgba(51, 209, 122, 0.3);
+      background: rgba(51, 209, 122, 0.08);
+      border-radius: 999px;
+      padding: 0.2rem 0.6rem;
+    }
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--rz-green);
+      box-shadow: 0 0 7px var(--rz-green);
     }
   }
 }

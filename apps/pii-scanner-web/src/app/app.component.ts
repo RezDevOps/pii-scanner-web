@@ -21,6 +21,7 @@ import {
   Component,
   computed,
   inject,
+  signal,
 } from "@angular/core";
 
 // PDF.js v4+ exige un workerSrc URL valide pour parser les PDF. On le
@@ -70,8 +71,19 @@ import { buildDetectorLabels } from "./scan/detector-labels";
   template: `
     <a class="skip-link" href="#demo">Aller à la démo</a>
 
-    <mat-toolbar color="primary" class="topbar" role="banner">
-      <span class="brand">pii-scanner-web</span>
+    <mat-toolbar class="topbar" role="banner">
+      <span class="brand">
+        <img
+          class="brand-logo"
+          src="logo-rezdevops.png"
+          alt="RezDevOps"
+          width="213"
+          height="180"
+        />
+        <span class="brand-name"
+          >pii-scanner-web <small>par RezDevOps</small></span
+        >
+      </span>
       <span class="spacer"></span>
       <nav aria-label="Navigation principale" class="topnav">
         <a href="#comment-ca-marche">Fonctionnement</a>
@@ -91,7 +103,7 @@ import { buildDetectorLabels } from "./scan/detector-labels";
       <section class="hero" aria-labelledby="hero-title">
         <p class="eyebrow">Outil RezDevOps · open-source AGPL-3.0</p>
         <h1 id="hero-title">
-          Scanner local de données personnelles<br />
+          <span class="grad">Scanner local de données personnelles</span><br />
           <span class="hero-subtitle"
             >dans vos fichiers bureautiques, sans rien envoyer.</span
           >
@@ -118,6 +130,10 @@ import { buildDetectorLabels } from "./scan/detector-labels";
           <li>12 détecteurs FR (5 avec validation par checksum)</li>
           <li>Code public, signé sigstore, SBOM publié</li>
         </ul>
+        <div class="brand-signature">
+          <span class="bar" aria-hidden="true"></span>
+          <span class="tag-line">Votre numérique, enfin à vous.</span>
+        </div>
       </section>
 
       <!-- ============================================================ -->
@@ -345,11 +361,34 @@ import { buildDetectorLabels } from "./scan/detector-labels";
               Image multi-arch (amd64 + arm64) sur GHCR. Tourne en
               <code>nginx-unprivileged</code> sur le port 8080.
             </p>
-            <p class="dist-cta">
-              <code class="cmd"
-                >docker pull ghcr.io/rezdevops/pii-scanner-web:latest</code
+            <div class="cmd-row">
+              <code class="cmd">{{ dockerPullCmd }}</code>
+              <button
+                type="button"
+                class="copy-btn"
+                [class.copied]="copiedKey() === 'docker'"
+                (click)="copyCommand('docker', dockerPullCmd)"
+                [attr.aria-label]="
+                  copiedKey() === 'docker'
+                    ? 'Commande Docker copiée'
+                    : 'Copier la commande Docker'
+                "
               >
-            </p>
+                @if (copiedKey() === "docker") {
+                  <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12l4 4 10-10" />
+                  </svg>
+                } @else {
+                  <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="9" y="9" width="11" height="11" rx="2" />
+                    <path
+                      d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"
+                    />
+                  </svg>
+                }
+                <span>{{ copiedKey() === "docker" ? "Copié" : "Copier" }}</span>
+              </button>
+            </div>
           </article>
           <article class="dist-card">
             <h3>Packages npm</h3>
@@ -357,12 +396,34 @@ import { buildDetectorLabels } from "./scan/detector-labels";
               Pour intégrer les détecteurs ou l'engine dans votre propre outil.
               Provenance signée OIDC.
             </p>
-            <p class="dist-cta">
-              <code class="cmd"
-                >npm install &#64;rezdevops/pii-detectors
-                &#64;rezdevops/pii-scanner-engine</code
+            <div class="cmd-row">
+              <code class="cmd">{{ npmInstallCmd }}</code>
+              <button
+                type="button"
+                class="copy-btn"
+                [class.copied]="copiedKey() === 'npm'"
+                (click)="copyCommand('npm', npmInstallCmd)"
+                [attr.aria-label]="
+                  copiedKey() === 'npm'
+                    ? 'Commande npm copiée'
+                    : 'Copier la commande npm'
+                "
               >
-            </p>
+                @if (copiedKey() === "npm") {
+                  <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 12l4 4 10-10" />
+                  </svg>
+                } @else {
+                  <svg class="ico" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="9" y="9" width="11" height="11" rx="2" />
+                    <path
+                      d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"
+                    />
+                  </svg>
+                }
+                <span>{{ copiedKey() === "npm" ? "Copié" : "Copier" }}</span>
+              </button>
+            </div>
           </article>
         </div>
       </section>
@@ -370,33 +431,91 @@ import { buildDetectorLabels } from "./scan/detector-labels";
 
     <footer class="footer" role="contentinfo">
       <div class="footer-inner">
-        <p class="muted">
-          <strong>pii-scanner-web</strong> v{{ engineVersion }} ·
-          <a
-            href="https://github.com/RezDevOps/pii-scanner-web"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Code source du projet sur GitHub (s'ouvre dans un nouvel onglet)"
-            >github.com/RezDevOps/pii-scanner-web</a
-          >
-          · Licence
-          <a
-            href="https://www.gnu.org/licenses/agpl-3.0.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            >AGPL-3.0</a
-          >
-          · Auteur Rudy Rezaire (<a
-            href="https://rezdevops.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            >RezDevOps</a
-          >)
-        </p>
-        <p class="muted small">
-          Aucune analytics, aucune télémétrie, aucun cookie, aucun stockage.
-          Cette page n'enregistre rien.
-        </p>
+        <div class="footer-cols">
+          <div class="footer-brand-col">
+            <p class="footer-product">pii-scanner-web</p>
+            <p class="footer-desc">
+              Scanner local de données personnelles : tout est traité dans votre
+              navigateur, rien n'est envoyé.
+            </p>
+            <div class="footer-brand">
+              <img
+                class="footer-logo"
+                src="logo-rezdevops.png"
+                alt="RezDevOps"
+                width="213"
+                height="180"
+              />
+              <div>
+                <div class="footer-org">RezDevOps</div>
+                <div class="footer-tag">Votre numérique, enfin à vous.</div>
+              </div>
+            </div>
+          </div>
+
+          <nav class="footer-links" aria-label="Le produit">
+            <h2 class="footer-h">Le produit</h2>
+            <ul>
+              <li><a href="#comment-ca-marche">Fonctionnement</a></li>
+              <li><a href="#demo">Démo</a></li>
+              <li><a href="#souverainete">Souveraineté</a></li>
+              <li><a href="#distribution">Distribution</a></li>
+            </ul>
+          </nav>
+
+          <nav class="footer-links" aria-label="Ressources">
+            <h2 class="footer-h">Ressources</h2>
+            <ul>
+              <li>
+                <a
+                  href="https://github.com/RezDevOps/pii-scanner-web"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Code source (GitHub)</a
+                >
+              </li>
+              <li><a href="verifier/index.html">Guide souveraineté</a></li>
+              <li>
+                <a
+                  href="https://github.com/RezDevOps/pii-scanner-web/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Dernière release</a
+                >
+              </li>
+              <li>
+                <a
+                  href="https://www.gnu.org/licenses/agpl-3.0.html"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Licence AGPL-3.0</a
+                >
+              </li>
+            </ul>
+          </nav>
+        </div>
+
+        <div class="footer-bar">
+          <p class="footer-credit">
+            © {{ currentYear }} RezDevOps · pii-scanner-web v{{ engineVersion }}
+            · Rudy Rezaire
+          </p>
+          <ul class="footer-pills" aria-label="Garanties de souveraineté">
+            <li class="pill">
+              <span class="pill-dot" aria-hidden="true"></span>Zéro upload
+            </li>
+            <li class="pill">
+              <span class="pill-dot" aria-hidden="true"></span>Zéro analytics
+            </li>
+            <li class="pill">
+              <span class="pill-dot" aria-hidden="true"></span>Zéro cookie
+            </li>
+            <li class="pill">
+              <span class="pill-dot" aria-hidden="true"></span>Code signé
+              sigstore
+            </li>
+          </ul>
+        </div>
       </div>
     </footer>
   `,
@@ -409,6 +528,20 @@ export class AppComponent {
   protected readonly engineVersion = ENGINE_VERSION;
   protected readonly detectorsVersion = DETECTORS_VERSION;
   protected readonly detectorLabels = buildDetectorLabels();
+  protected readonly currentYear = new Date().getFullYear();
+
+  // Commandes de la section Distribution — source unique (affichage + copie).
+  protected readonly dockerPullCmd =
+    "docker pull ghcr.io/rezdevops/pii-scanner-web:latest";
+  protected readonly npmInstallCmd =
+    "npm install @rezdevops/pii-detectors @rezdevops/pii-scanner-engine";
+
+  /**
+   * Clé de la commande copiée à l'instant (`"docker"` | `"npm"` | `null`),
+   * pour basculer le bouton en état « Copié » ~2 s. Signal → compatible
+   * `OnPush`.
+   */
+  protected readonly copiedKey = signal<string | null>(null);
 
   protected readonly queueSig = this.scanService.queue;
   protected readonly isScanningSig = this.scanService.isScanning;
@@ -475,6 +608,33 @@ export class AppComponent {
 
   protected onReset(): void {
     this.scanService.reset();
+  }
+
+  /**
+   * Copie une commande de la section Distribution dans le presse-papiers.
+   * `navigator.clipboard` exige un contexte sécurisé (https, localhost,
+   * file://) ; en cas d'échec on invite à copier manuellement (fallback
+   * accessible, pas d'`document.execCommand` déprécié).
+   */
+  protected async copyCommand(key: string, command: string): Promise<void> {
+    try {
+      await navigator.clipboard.writeText(command);
+      this.copiedKey.set(key);
+      this.snackBar.open("Commande copiée dans le presse-papiers.", "Fermer", {
+        duration: 2500,
+      });
+      setTimeout(() => {
+        if (this.copiedKey() === key) {
+          this.copiedKey.set(null);
+        }
+      }, 2000);
+    } catch {
+      this.snackBar.open(
+        "Copie impossible. Sélectionnez la commande et copiez-la manuellement.",
+        "Fermer",
+        { duration: 4000 },
+      );
+    }
   }
 }
 
