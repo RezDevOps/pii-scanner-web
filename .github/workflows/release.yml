@@ -97,7 +97,7 @@ jobs:
         run: pnpm test
 
       - name: Audit (high severity threshold)
-        run: pnpm audit --audit-level=high --prod
+        run: node scripts/audit-deps.mjs
 
   # ---------------------------------------------------------------------------
   # 2. Build production de l'app + packages, partagé via artifact pour les
