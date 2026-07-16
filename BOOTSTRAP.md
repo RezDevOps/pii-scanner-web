@@ -80,7 +80,7 @@ Aucune configuration requise. Le job `build-docker` utilise `cosign-installer@v3
 Pour vérifier une image signée localement :
 
 ```bash
-cosign verify ghcr.io/rezdevops/pii-scanner-web:1.2.0 \
+cosign verify ghcr.io/rezdevops/pii-scanner-web:1.3.0 \
   --certificate-identity-regexp 'https://github.com/RezDevOps/pii-scanner-web/.*' \
   --certificate-oidc-issuer 'https://token.actions.githubusercontent.com'
 ```

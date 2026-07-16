@@ -2,6 +2,23 @@
 
 Format : [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/), versionnement [SemVer](https://semver.org/lang/fr/).
 
+## [1.3.0] — 2026-07-16
+
+Refonte visuelle complète de l'interface aux couleurs RezDevOps (thème sombre « Tech futuriste » repris du site), deux améliorations UX (boutons « Copier », footer restructuré) et un correctif CI. **Aucun changement côté détecteurs, parseurs, exports ni API publique** — 12 détecteurs, 10 formats, 4 exports strictement identiques à `v1.2.x`. CSP intacte, promesse souveraineté renforcée (polices désormais auto-hébergées, aucun CDN). Les packages npm sont republiés en `1.3.0` par alignement monorepo (code inchangé depuis `1.2.0`).
+
+### UI
+
+- **Refonte de la coquille** (`app.component`, `styles.scss`) au thème dark navy « Tech futuriste » : fond navy + halos bleus + grille technique, surfaces « glass », en-tête et cartes redessinés. Les tokens `--psw-*` sont redéfinis en sombre par défaut (les composants drop-zone / rapport / file-queue héritent sans modification) ; thème Material M3 `theme-type: dark`, primary bleu de marque.
+- **Polices de marque auto-hébergées** (Space Grotesk, Barlow, Inter, JetBrains Mono) dans `apps/pii-scanner-web/src/fonts/*.woff2`, référencées en ressources fingerprintées par esbuild — URLs valides sous le sous-chemin GitHub Pages, en ZIP `file://` et en Docker. Aucun CDN ; CSP `font-src 'self'` inchangée.
+- **Logo RezDevOps** (en-tête + footer) et tagline « Votre numérique, enfin à vous. ».
+- **Boutons « Copier »** sur les cartes Distribution (Docker, npm) : `navigator.clipboard` + retour visuel « Copié », repli accessible si le presse-papiers est indisponible.
+- **Footer restructuré en 3 colonnes** (produit, navigation, ressources) + barre basse (crédit, année dynamique, pastilles de garanties « Zéro upload / analytics / cookie », « Code signé sigstore »).
+- Contraste WCAG AA vérifié sur fond navy (minimum 5,58:1). Budget `anyComponentStyle` relevé `8 → 12 ko` (warning) / `12 → 16 ko` (error) pour la coquille étoffée.
+
+### CI
+
+- **`scripts/audit-deps.mjs`** remplace `pnpm audit --audit-level=high --prod` dans `ci.yml` et `release.yml`. npm a retiré l'ancien endpoint « quick » (HTTP 410) que toutes les versions de pnpm interrogent encore, ce qui cassait l'étape d'audit indépendamment de toute vulnérabilité. Le script conserve exactement la même politique — dépendances de production, seuil `high`+, base d'advisories npm — via le nouvel endpoint « bulk » officiel. Aucune dépendance ajoutée. Audit post-bascule : 0 advisory `high`+.
+
 ## [1.2.2] — 2026-07-05
 
 Migration du package manager **pnpm 9 → pnpm 10**, alignant `pii-scanner-web` sur `rezdevops-site` (déjà en pnpm 10). Dernier chantier d'infra ouvert après la vague Node. Chantier manifeste + doc uniquement : **aucun changement fonctionnel** — détecteurs, formats, exports et API publique strictement identiques à `v1.2.1`. CSP intacte, promesse souveraineté inchangée.

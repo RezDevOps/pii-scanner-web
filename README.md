@@ -19,29 +19,32 @@ C'est le second utilitaire vitrine [RezDevOps](https://github.com/RezDevOps), ap
 
 ## Statut
 
+**v1.3.0 — Refonte UI RezDevOps + fix audit CI.** Refonte visuelle complète de l'interface au thème sombre « Tech futuriste » de RezDevOps (fond navy, halos, grille technique, surfaces glass), logo + tagline « Votre numérique, enfin à vous. », polices de marque **auto-hébergées** (Space Grotesk / Barlow / Inter / JetBrains Mono, ressources fingerprintées esbuild, aucun CDN — CSP `font-src 'self'` inchangée). Deux améliorations UX : boutons « Copier » sur les cartes Distribution (Docker, npm) et footer restructuré en 3 colonnes + barre de garanties. Contraste WCAG AA vérifié sur navy (min 5,58:1). Côté CI, `scripts/audit-deps.mjs` remplace `pnpm audit` (endpoint npm « quick » retiré, HTTP 410) en conservant la même politique (deps prod, seuil high+) via l'endpoint « bulk ». **Aucun changement fonctionnel** : détecteurs, formats, exports et API publique strictement identiques à `v1.2.x` ; packages npm republiés en 1.3.0 par alignement monorepo. Cf. `CHANGELOG.md`.
+
 **v1.2.2 — Migration pnpm 10.** Bump `packageManager` `pnpm@9.12.0 → pnpm@10.34.4`, `engines.pnpm >=9 → >=10`, aligné sur `rezdevops-site`. Provisionné par Corepack (aucun changement de workflow). Le lockfile est inchangé (format lockfileVersion 9.0 commun à pnpm 9 et 10) : `pnpm install --frozen-lockfile` reste vert. pnpm 10 n'exécute plus les scripts de build des dépendances par défaut ; les paquets concernés (esbuild, @parcel/watcher, lmdb, msgpackr-extract) embarquent des binaires prébuildés ou un fallback JS, donc aucun `onlyBuiltDependencies` requis (message « Ignored build scripts » attendu, non bloquant). Pas de `--legacy` : ce repo n'utilise pas `pnpm deploy`. `pnpm audit --prod` : 0 high / 0 critical. Aucun changement fonctionnel. Cf. `docs/adr/0011-bump-pnpm-10.md`.
 
 **v1.2.1 — Migration CI Node 22/24 + patch sécurité Angular.** Retrait de Node 20 (EOL avril 2026, runtime setup-node retiré des runners GitHub le 2026-06-02). Matrice CI `["22", "24"]`, build/déploiement fixés sur Node 22 (LTS active), engine `node` relevé `>=20.19 → >=22.12` sur la racine et les deux packages, `.nvmrc` à `22`. Livré avec le patch Angular `21.2.12 → 21.2.17` corrigeant 5 CVE `high` (`@angular/core`/`@angular/common`) qui bloquaient le step `pnpm audit` ; `pnpm audit --prod` post-bump : 0 high / 0 critical. Corepack + pnpm 9 inchangés (montée pnpm 10 = chantier distinct). Aucun changement fonctionnel : détecteurs, formats, exports et API publique strictement identiques à `v1.2.0`. Cf. `docs/adr/0010-bump-node-22-24.md`.
 
 **v1.2.0 — Angular 21 + worker pool app-side + dette CI résiduelle.** Sprint S7. Trois chantiers livrés ensemble : (1) bump de la stack front-end Angular 20 → 21.2.x conjointement Vitest 3 → 4.1.5 et engine Node 20.10 → 20.19, (2) réactivation du pool de Web Workers via un script worker hébergé côté app (résout le bug v1.0 où le pool était silencieusement désactivé), (3) durcissement `if-no-files-found: warn → error` sur l'upload des artifacts npm + bloc `pnpm.overrides` dans le `package.json` racine pour patcher 3 CVE actives dans la toolchain Angular 21.2 (`fast-uri` x2 high, `ip-address` moderate). Aucun changement côté détecteurs ni parseurs : 12 détecteurs, 10 formats, 4 exports inchangés depuis `v0.4.1`. API publique des packages npm strictement identique à `v1.1.0` (alignement monorepo). CSP intacte. `pnpm audit` post-bump : 0 high / 0 moderate / 0 critical.
 
-| Jalon                                                                      | Statut   | Sortie                |
-| -------------------------------------------------------------------------- | -------- | --------------------- |
-| S0 — Squelette repo, README, LICENSE, ADRs, CI minimale                    | ✅ livré | premier commit public |
-| S1 — Couche détecteurs (5 cœur : email, tel FR, NIR, IBAN, SIRET)          | ✅ livré | tag `v0.1.0`          |
-| S2 — Engine + parseurs texte (CSV/TSV/TXT/MD/JSON) + pool Workers + façade | ✅ livré | tag `v0.2.0`          |
-| S2.1 — Parseurs binaires (XLSX / XLS / PDF / DOCX / HTML)                  | ✅ livré | tag `v0.2.1`          |
-| S3 — UI Angular (drop zone, rapport interactif, branchement pool)          | ✅ livré | tag `v0.3.0`          |
-| S4 — 7 détecteurs étendus + exports JSON / Markdown / HTML autonome        | ✅ livré | tag `v0.4.0`          |
-| S4.1 — CSP stricte + audit deps + WCAG AA + lazy-loading parseurs binaires | ✅ livré | tag `v0.4.1`          |
-| S5 — Pipeline release multi-cibles + landing + page vérifier publique      | ✅ livré | tag `v1.0.0`          |
-| S5.1 — Hotfix CI release (build packages avant bundle Angular)             | ✅ livré | tag `v1.0.1`          |
-| S5.2 — Hotfix CI SBOM (cyclonedx-npm → cdxgen, compat pnpm)                | ✅ livré | tag `v1.0.2`          |
-| S5.3 — Hotfix Docker multi-arch (Dockerfile mono-stage, plus de QEMU)      | ✅ livré | tag `v1.0.3`          |
-| S5.4 — Hotfix cosign image name (lowercase OCI imposé par spec)            | ✅ livré | tag `v1.0.4`          |
-| S5.5 — Restitution des icônes Material (SVG inline souverains)             | ✅ livré | tag `v1.0.5`          |
-| S6.1 — Drag & drop incrémental + détection des doublons                    | ✅ livré | tag `v1.1.0`          |
-| S7 — Angular 21 + worker pool app-side + dette CI résiduelle               | ✅ livré | **tag `v1.2.0`**      |
+| Jalon                                                                        | Statut   | Sortie                |
+| ---------------------------------------------------------------------------- | -------- | --------------------- |
+| S0 — Squelette repo, README, LICENSE, ADRs, CI minimale                      | ✅ livré | premier commit public |
+| S1 — Couche détecteurs (5 cœur : email, tel FR, NIR, IBAN, SIRET)            | ✅ livré | tag `v0.1.0`          |
+| S2 — Engine + parseurs texte (CSV/TSV/TXT/MD/JSON) + pool Workers + façade   | ✅ livré | tag `v0.2.0`          |
+| S2.1 — Parseurs binaires (XLSX / XLS / PDF / DOCX / HTML)                    | ✅ livré | tag `v0.2.1`          |
+| S3 — UI Angular (drop zone, rapport interactif, branchement pool)            | ✅ livré | tag `v0.3.0`          |
+| S4 — 7 détecteurs étendus + exports JSON / Markdown / HTML autonome          | ✅ livré | tag `v0.4.0`          |
+| S4.1 — CSP stricte + audit deps + WCAG AA + lazy-loading parseurs binaires   | ✅ livré | tag `v0.4.1`          |
+| S5 — Pipeline release multi-cibles + landing + page vérifier publique        | ✅ livré | tag `v1.0.0`          |
+| S5.1 — Hotfix CI release (build packages avant bundle Angular)               | ✅ livré | tag `v1.0.1`          |
+| S5.2 — Hotfix CI SBOM (cyclonedx-npm → cdxgen, compat pnpm)                  | ✅ livré | tag `v1.0.2`          |
+| S5.3 — Hotfix Docker multi-arch (Dockerfile mono-stage, plus de QEMU)        | ✅ livré | tag `v1.0.3`          |
+| S5.4 — Hotfix cosign image name (lowercase OCI imposé par spec)              | ✅ livré | tag `v1.0.4`          |
+| S5.5 — Restitution des icônes Material (SVG inline souverains)               | ✅ livré | tag `v1.0.5`          |
+| S6.1 — Drag & drop incrémental + détection des doublons                      | ✅ livré | tag `v1.1.0`          |
+| S7 — Angular 21 + worker pool app-side + dette CI résiduelle                 | ✅ livré | tag `v1.2.0`          |
+| Refonte UI RezDevOps (thème sombre) + boutons copier + footer + fix audit CI | ✅ livré | **tag `v1.3.0`**      |
 
 ## Promesse
 
@@ -82,17 +85,17 @@ Hébergée sur GitHub Pages. Statique, aucun backend.
 Multi-arch (`linux/amd64` + `linux/arm64`), tourne en `nginx-unprivileged` sur le port 8080.
 
 ```bash
-docker pull ghcr.io/rezdevops/pii-scanner-web:1.2.0   # version épinglée
+docker pull ghcr.io/rezdevops/pii-scanner-web:1.3.0   # version épinglée
 docker pull ghcr.io/rezdevops/pii-scanner-web:latest  # rolling
 
-docker run --rm -p 8080:8080 ghcr.io/rezdevops/pii-scanner-web:1.2.0
+docker run --rm -p 8080:8080 ghcr.io/rezdevops/pii-scanner-web:1.3.0
 # → http://localhost:8080
 ```
 
 Vérifier la signature de l'image :
 
 ```bash
-cosign verify ghcr.io/rezdevops/pii-scanner-web:1.2.0 \
+cosign verify ghcr.io/rezdevops/pii-scanner-web:1.3.0 \
   --certificate-identity-regexp 'https://github.com/RezDevOps/pii-scanner-web/.github/workflows/release.yml@refs/tags/v.+' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
@@ -103,11 +106,11 @@ Téléchargeable depuis la [page Releases GitHub](https://github.com/RezDevOps/p
 
 ```bash
 cosign verify-blob \
-  --certificate pii-scanner-web-v1.2.0-standalone.zip.pem \
-  --signature   pii-scanner-web-v1.2.0-standalone.zip.sig \
+  --certificate pii-scanner-web-v1.3.0-standalone.zip.pem \
+  --signature   pii-scanner-web-v1.3.0-standalone.zip.sig \
   --certificate-identity-regexp 'https://github.com/RezDevOps/pii-scanner-web/.github/workflows/release.yml@refs/tags/v.+' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  pii-scanner-web-v1.2.0-standalone.zip
+  pii-scanner-web-v1.3.0-standalone.zip
 ```
 
 ### Packages npm
