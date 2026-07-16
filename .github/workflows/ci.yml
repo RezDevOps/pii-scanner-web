@@ -76,4 +76,4 @@ jobs:
       # `pnpm.overrides` documenté + une note dans l'audit, pas par la
       # suppression de ce step.
       - name: Audit dependencies (high+ severity threshold)
-        run: pnpm audit --audit-level=high --prod
+        run: node scripts/audit-deps.mjs
